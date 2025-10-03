@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -15,12 +16,16 @@ export default function Home() {
           <p className="text-center text-muted-foreground">
             輕鬆管理您的錯題本，智能複習系統
           </p>
-          <Button size="lg" className="w-full">
-            立即開始
-          </Button>
-          <Button size="lg" variant="outline" className="w-full">
-            了解更多
-          </Button>
+          <Link href="/auth/signup">
+            <Button size="lg" className="w-full">
+              立即開始
+            </Button>
+          </Link>
+          <Link href="/auth/login">
+            <Button size="lg" variant="outline" className="w-full">
+              登入帳號
+            </Button>
+          </Link>
         </CardContent>
       </Card>
     </div>

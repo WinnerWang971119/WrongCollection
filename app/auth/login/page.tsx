@@ -34,6 +34,7 @@ export default function LoginPage() {
   })
 
   async function onSubmit(data: LoginFormValues) {
+    console.log('🚀 登入表單提交！', data)
     setIsLoading(true)
     setError(null)
 
@@ -43,7 +44,10 @@ export default function LoginPage() {
         password: data.password,
       })
 
+      console.log('📦 Supabase 回應:', { authData, authError })
+
       if (authError) {
+        console.error('❌ 登入錯誤:', authError)
         // 處理不同類型的錯誤
         if (authError.message.includes('Invalid login credentials')) {
           setError('Email 或密碼錯誤')
@@ -57,17 +61,21 @@ export default function LoginPage() {
         return
       }
 
+      console.log('✅ User:', authData.user?.email)
+      console.log('✅ Session:', authData.session ? '存在' : '不存在')
+
       // 檢查是否有 session（Email 已驗證）
       if (!authData.session) {
+        console.warn('⚠️ Session 不存在，帳號可能未驗證')
         setError('您的帳號尚未驗證，請檢查 Email 收件箱')
         return
       }
 
-      // 登入成功，跳轉到 Dashboard
-      router.push('/dashboard')
-      router.refresh() // 刷新以更新認證狀態
+      // 登入成功，使用 window.location 強制完整頁面刷新
+      console.log('✅ 登入成功！準備跳轉到 Dashboard...')
+      window.location.href = '/dashboard'
     } catch (err) {
-      console.error('登入錯誤:', err)
+      console.error('❌ 登入發生未知錯誤:', err)
       setError('發生未知錯誤，請稍後再試')
     } finally {
       setIsLoading(false)
