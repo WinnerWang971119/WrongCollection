@@ -38,6 +38,12 @@
   - signUp() 實作
   - 錯誤訊息處理（Email 已註冊、密碼太短）
   - 自動登入並跳轉 /dashboard
+- ✅ 建立 Dashboard 頁面（/app/dashboard/page.tsx）
+  - Server Component 取得使用者資訊
+  - 顯示使用者 Email 和 ID
+  - 頂部導航列設計
+  - 登出按鈕元件（LogoutButton.tsx）
+  - 功能預覽卡片（資料夾、錯題、練習）
 
 ### 2025-10-03 (下午)
 - ✅ Next.js 15.5.4 專案初始化完成
@@ -57,9 +63,9 @@
 
 ---
 
-**最後更新**: 2025-10-04 09:30
+**最後更新**: 2025-10-04 10:00
 **當前版本**: v0.1.0-dev
-**開發狀態**: Phase 1B 進行中（Task 2/6 完成）wind CSS 基礎配置
+**開發狀態**: Phase 1B 完成（5/6 任務完成），準備進行完整測試wind CSS 基礎配置
 - [x] shadcn/ui 設定
 - [x] Supabase 連接配置
 - [ ] Landing Page 完整實作
