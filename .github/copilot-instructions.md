@@ -25,6 +25,11 @@
   - Email 和密碼欄位，含錯誤提示
   - 前往註冊連結
   - 卡片外圍漸層紫色邊框（from-purple-400 via-blue-400 to-indigo-500）
+- ✅ 建立註冊頁面 UI（/app/auth/signup/page.tsx）
+  - 相同藍色調設計和漸層邊框
+  - Email、密碼、確認密碼欄位
+  - Zod 驗證密碼一致性（refine）
+  - 前往登入連結
 
 ### 2025-10-03 (下午)
 - ✅ Next.js 15.5.4 專案初始化完成
@@ -44,9 +49,9 @@
 
 ---
 
-**最後更新**: 2025-10-04 09:00
+**最後更新**: 2025-10-04 09:30
 **當前版本**: v0.1.0-dev
-**開發狀態**: Phase 1B 進行中（Task 1/6 完成）wind CSS 基礎配置
+**開發狀態**: Phase 1B 進行中（Task 2/6 完成）wind CSS 基礎配置
 - [x] shadcn/ui 設定
 - [x] Supabase 連接配置
 - [ ] Landing Page 完整實作
