@@ -44,6 +44,11 @@
   - 頂部導航列設計
   - 登出按鈕元件（LogoutButton.tsx）
   - 功能預覽卡片（資料夾、錯題、練習）
+- ✅ 修復 Email 驗證流程
+  - 建立驗證回調處理器（/app/auth/callback/route.ts）
+  - 建立驗證等待頁面（/app/auth/verify-email/page.tsx）
+  - 建立驗證錯誤頁面（/app/auth/error/page.tsx）
+  - 更新註冊/登入邏輯處理未驗證帳號
 
 ### 2025-10-03 (下午)
 - ✅ Next.js 15.5.4 專案初始化完成

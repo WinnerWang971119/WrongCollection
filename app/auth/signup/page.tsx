@@ -61,9 +61,15 @@ export default function SignupPage() {
       }
 
       // 註冊成功
-      // Supabase 會自動設定 session，使用者已自動登入
-      router.push('/dashboard')
-      router.refresh() // 刷新以更新認證狀態
+      // 如果需要 Email 驗證，authData.user 存在但 session 可能為 null
+      if (authData.user && !authData.session) {
+        // 需要 Email 驗證
+        router.push('/auth/verify-email')
+      } else {
+        // 不需要驗證或已自動登入
+        router.push('/dashboard')
+        router.refresh()
+      }
     } catch (err) {
       console.error('註冊錯誤:', err)
       setError('發生未知錯誤，請稍後再試')

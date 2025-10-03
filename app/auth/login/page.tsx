@@ -48,10 +48,18 @@ export default function LoginPage() {
         if (authError.message.includes('Invalid login credentials')) {
           setError('Email 或密碼錯誤')
         } else if (authError.message.includes('Email not confirmed')) {
-          setError('請先驗證您的 Email')
+          setError('請先驗證您的 Email，檢查您的收件箱')
+        } else if (authError.message.includes('Email link is invalid or has expired')) {
+          setError('驗證連結已過期，請重新註冊')
         } else {
           setError(authError.message || '登入失敗，請稍後再試')
         }
+        return
+      }
+
+      // 檢查是否有 session（Email 已驗證）
+      if (!authData.session) {
+        setError('您的帳號尚未驗證，請檢查 Email 收件箱')
         return
       }
 

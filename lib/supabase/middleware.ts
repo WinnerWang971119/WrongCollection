@@ -43,7 +43,11 @@ export async function updateSession(request: NextRequest) {
   }
 
   // 已登入用戶訪問登入頁，自動跳轉到 dashboard
-  if (user && (request.nextUrl.pathname === '/auth/login' || request.nextUrl.pathname === '/auth/signup')) {
+  // 但允許訪問驗證相關頁面
+  const authPages = ['/auth/login', '/auth/signup']
+  const isAuthPage = authPages.some(page => request.nextUrl.pathname === page)
+  
+  if (user && isAuthPage) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
