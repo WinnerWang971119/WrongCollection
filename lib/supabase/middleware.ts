@@ -35,8 +35,13 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  console.log('\n🔒 Middleware 檢查:')
+  console.log('   路徑:', request.nextUrl.pathname)
+  console.log('   使用者:', user ? `${user.email} (已登入)` : '未登入')
+
   // 受保護路由：需要登入才能訪問 /dashboard
   if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+    console.log('   動作: 未登入訪問 Dashboard → 跳轉到登入頁\n')
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)
@@ -48,10 +53,12 @@ export async function updateSession(request: NextRequest) {
   const isAuthPage = authPages.some(page => request.nextUrl.pathname === page)
   
   if (user && isAuthPage) {
+    console.log('   動作: 已登入訪問登入頁 → 跳轉到 Dashboard\n')
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 
+  console.log('   動作: 允許通過\n')
   return supabaseResponse
 }

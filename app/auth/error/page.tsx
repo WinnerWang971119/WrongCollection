@@ -2,11 +2,13 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-export default function AuthErrorPage({
+export default async function AuthErrorPage({
   searchParams,
 }: {
-  searchParams: { message?: string }
+  searchParams: Promise<{ message?: string }>
 }) {
+  const params = await searchParams
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 p-4">
       <div className="w-full max-w-md">
@@ -15,7 +17,7 @@ export default function AuthErrorPage({
             <CardHeader className="text-center">
               <CardTitle className="text-3xl font-bold text-red-900">驗證錯誤</CardTitle>
               <CardDescription className="text-gray-600">
-                {searchParams.message || '發生未知錯誤'}
+                {params.message || '發生未知錯誤'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

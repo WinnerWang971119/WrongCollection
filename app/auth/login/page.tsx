@@ -34,7 +34,11 @@ export default function LoginPage() {
   })
 
   async function onSubmit(data: LoginFormValues) {
-    console.log('🚀 登入表單提交！', data)
+    console.log('\n========================================')
+    console.log('🚀 登入表單提交！')
+    console.log('   Email:', data.email)
+    console.log('========================================\n')
+    
     setIsLoading(true)
     setError(null)
 
@@ -44,10 +48,12 @@ export default function LoginPage() {
         password: data.password,
       })
 
-      console.log('📦 Supabase 回應:', { authData, authError })
+      console.log('📦 Supabase 回應:')
+      console.log('   authData:', authData ? 'exists' : 'null')
+      console.log('   authError:', authError?.message || 'none')
 
       if (authError) {
-        console.error('❌ 登入錯誤:', authError)
+        console.error('❌ 登入錯誤:', authError.message, '\n')
         // 處理不同類型的錯誤
         if (authError.message.includes('Invalid login credentials')) {
           setError('Email 或密碼錯誤')
@@ -66,16 +72,24 @@ export default function LoginPage() {
 
       // 檢查是否有 session（Email 已驗證）
       if (!authData.session) {
-        console.warn('⚠️ Session 不存在，帳號可能未驗證')
+        console.warn('⚠️ Session 不存在，帳號可能未驗證\n')
         setError('您的帳號尚未驗證，請檢查 Email 收件箱')
         return
       }
 
-      // 登入成功，使用 window.location 強制完整頁面刷新
-      console.log('✅ 登入成功！準備跳轉到 Dashboard...')
+      // 登入成功，延遲 800ms 確保 Cookie 完全寫入並同步
+      console.log('✅ 登入成功！等待 Cookie 同步...')
+      
+      // 先刷新 router 確保 server component 更新
+      router.refresh()
+      
+      // 延遲等待 cookie 同步（增加到 800ms）
+      await new Promise(resolve => setTimeout(resolve, 800))
+      
+      console.log('✅ Cookie 已同步，準備跳轉到 Dashboard...\n')
       window.location.href = '/dashboard'
     } catch (err) {
-      console.error('❌ 登入發生未知錯誤:', err)
+      console.error('❌ 登入發生未知錯誤:', err, '\n')
       setError('發生未知錯誤，請稍後再試')
     } finally {
       setIsLoading(false)
