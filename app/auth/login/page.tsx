@@ -25,6 +25,8 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  console.log('LoginPage 渲染，isLoading:', isLoading)
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -159,6 +161,7 @@ export default function LoginPage() {
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 disabled={isLoading}
+                onClick={() => console.log('🖱️ 登入按鈕被點擊！isLoading:', isLoading)}
               >
                 {isLoading ? '登入中...' : '登入'}
               </Button>
