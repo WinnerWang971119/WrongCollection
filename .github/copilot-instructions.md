@@ -24,6 +24,7 @@
   - 整合 react-hook-form + Zod 表單驗證
   - Email 和密碼欄位，含錯誤提示
   - 前往註冊連結
+  - 卡片外圍漸層紫色邊框（from-purple-400 via-blue-400 to-indigo-500）
 
 ### 2025-10-03 (下午)
 - ✅ Next.js 15.5.4 專案初始化完成

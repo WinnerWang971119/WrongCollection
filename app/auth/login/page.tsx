@@ -56,7 +56,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 p-4">
-      <Card className="w-full max-w-md shadow-lg border-blue-100">
+      <div className="w-full max-w-md">
+        <div className="p-1 bg-gradient-to-br from-purple-400 via-blue-400 to-indigo-500 rounded-lg shadow-xl">
+          <Card className="w-full shadow-none border-0 bg-white">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-3xl font-bold text-blue-900">登入</CardTitle>
           <CardDescription className="text-gray-600">
@@ -129,6 +131,8 @@ export default function LoginPage() {
           </Form>
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
   )
 }
