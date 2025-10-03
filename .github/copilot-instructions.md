@@ -30,6 +30,14 @@
   - Email、密碼、確認密碼欄位
   - Zod 驗證密碼一致性（refine）
   - 前往登入連結
+- ✅ 整合 Supabase Auth 登入功能
+  - signInWithPassword() 實作
+  - 錯誤訊息處理（Invalid credentials, Email not confirmed）
+  - 成功後跳轉 /dashboard
+- ✅ 整合 Supabase Auth 註冊功能
+  - signUp() 實作
+  - 錯誤訊息處理（Email 已註冊、密碼太短）
+  - 自動登入並跳轉 /dashboard
 
 ### 2025-10-03 (下午)
 - ✅ Next.js 15.5.4 專案初始化完成

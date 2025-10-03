@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { supabase } from '@/lib/supabase/client'
 
 // 表單驗證 Schema - 新增確認密碼驗證
 const signupSchema = z.object({
@@ -42,18 +43,30 @@ export default function SignupPage() {
     setError(null)
 
     try {
-      // TODO: Task 4 - 整合 Supabase Auth
-      console.log('註冊資料:', data)
-      
-      // 模擬 API 呼叫
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // 成功後跳轉（Task 4 會實作真實邏輯）
-      // router.push('/dashboard')
-      
-      setError('此功能將在 Task 4 實作')
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+      })
+
+      if (authError) {
+        // 處理不同類型的錯誤
+        if (authError.message.includes('User already registered')) {
+          setError('此 Email 已被註冊')
+        } else if (authError.message.includes('Password should be at least')) {
+          setError('密碼至少需要 6 個字元')
+        } else {
+          setError(authError.message || '註冊失敗，請稍後再試')
+        }
+        return
+      }
+
+      // 註冊成功
+      // Supabase 會自動設定 session，使用者已自動登入
+      router.push('/dashboard')
+      router.refresh() // 刷新以更新認證狀態
     } catch (err) {
-      setError('註冊失敗，請稍後再試')
+      console.error('註冊錯誤:', err)
+      setError('發生未知錯誤，請稍後再試')
     } finally {
       setIsLoading(false)
     }

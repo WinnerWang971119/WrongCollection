@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { supabase } from '@/lib/supabase/client'
 
 // 表單驗證 Schema
 const loginSchema = z.object({
@@ -37,18 +38,29 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      // TODO: Task 3 - 整合 Supabase Auth
-      console.log('登入資料:', data)
-      
-      // 模擬 API 呼叫
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // 成功後跳轉（Task 3 會實作真實邏輯）
-      // router.push('/dashboard')
-      
-      setError('此功能將在 Task 3 實作')
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      })
+
+      if (authError) {
+        // 處理不同類型的錯誤
+        if (authError.message.includes('Invalid login credentials')) {
+          setError('Email 或密碼錯誤')
+        } else if (authError.message.includes('Email not confirmed')) {
+          setError('請先驗證您的 Email')
+        } else {
+          setError(authError.message || '登入失敗，請稍後再試')
+        }
+        return
+      }
+
+      // 登入成功，跳轉到 Dashboard
+      router.push('/dashboard')
+      router.refresh() // 刷新以更新認證狀態
     } catch (err) {
-      setError('登入失敗，請稍後再試')
+      console.error('登入錯誤:', err)
+      setError('發生未知錯誤，請稍後再試')
     } finally {
       setIsLoading(false)
     }
