@@ -17,7 +17,7 @@ interface FolderTreeProps {
   selectedFolderId: string | null;
   onSelectFolder: (folderId: string) => void;
   onAddRootFolder: () => void;
-  onAddSubfolder: (parentId: string) => void;
+  onAddSubfolder: (folder: FolderTreeNode) => void;
   onEditFolder: (folder: FolderTreeNode) => void;
   onDeleteFolder: (folder: FolderTreeNode) => void;
   refreshTrigger?: number; // 用於觸發重新載入

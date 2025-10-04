@@ -23,7 +23,7 @@ interface FolderItemProps {
   folder: FolderTreeNode;
   isSelected: boolean;
   onSelect: (folderId: string) => void;
-  onAddSubfolder: (parentId: string) => void;
+  onAddSubfolder: (folder: FolderTreeNode) => void;
   onEdit: (folder: FolderTreeNode) => void;
   onDelete: (folder: FolderTreeNode) => void;
   level?: number;
@@ -120,7 +120,7 @@ export function FolderItem({
               <DropdownMenuItem
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
-                  onAddSubfolder(folder.id);
+                  onAddSubfolder(folder);
                 }}
               >
                 <Plus className="mr-2 h-4 w-4" />

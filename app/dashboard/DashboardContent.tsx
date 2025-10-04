@@ -48,9 +48,9 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
   };
 
   // 處理新增子資料夾
-  const handleAddSubfolder = (parentId: string, parentName?: string) => {
-    setParentFolderId(parentId);
-    setParentFolderName(parentName || null);
+  const handleAddSubfolder = (parentFolder: FolderTreeNode) => {
+    setParentFolderId(parentFolder.id);
+    setParentFolderName(parentFolder.name);
     setIsNewFolderOpen(true);
   };
 
@@ -79,10 +79,7 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
           selectedFolderId={selectedFolderId}
           onSelectFolder={setSelectedFolderId}
           onAddRootFolder={handleAddRootFolder}
-          onAddSubfolder={(parentId) => {
-            // 這裡需要找到父資料夾名稱，暫時先用 ID
-            handleAddSubfolder(parentId);
-          }}
+          onAddSubfolder={handleAddSubfolder}
           onEditFolder={handleEditFolder}
           onDeleteFolder={handleDeleteFolder}
           refreshTrigger={refreshTrigger}
