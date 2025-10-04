@@ -67,6 +67,15 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
     setIsDeleteFolderOpen(true);
   };
 
+  // 刪除成功後的回調
+  const handleDeleteSuccess = () => {
+    // 如果刪除的是當前選中的資料夾，則取消選中
+    if (deletingFolder && selectedFolderId === deletingFolder.id) {
+      setSelectedFolderId(null);
+    }
+    handleSuccess();
+  };
+
   // 操作成功後重新載入
   const handleSuccess = () => {
     setRefreshTrigger((prev) => prev + 1);
@@ -275,7 +284,7 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
         open={isDeleteFolderOpen}
         onOpenChange={setIsDeleteFolderOpen}
         folder={deletingFolder}
-        onSuccess={handleSuccess}
+        onSuccess={handleDeleteSuccess}
       />
     </div>
   );

@@ -32,7 +32,7 @@ export async function PATCH(
       );
     }
 
-    const folderId = params.id;
+    const { id: folderId } = params;
 
     // 檢查資料夾是否存在且屬於該使用者
     const { data: existingFolder, error: fetchError } = await supabase
@@ -145,7 +145,7 @@ export async function DELETE(
       );
     }
 
-    const folderId = params.id;
+    const { id: folderId } = params;
     const searchParams = request.nextUrl.searchParams;
     const force = searchParams.get('force') === 'true';
 
