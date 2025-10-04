@@ -61,7 +61,7 @@ export function FolderItem({
           'group flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-blue-50 transition-colors cursor-pointer',
           isSelected && 'bg-blue-100 border border-blue-300'
         )}
-        style={{ paddingLeft: `${level * 20 + 12}px` }}
+        style={{ paddingLeft: `${level * 28 + 12}px` }}
         onClick={() => onSelect(folder.id)}
       >
         {/* 展開/收合圖示 */}
