@@ -59,12 +59,14 @@ export function NewFolderDialog({
 
   // 當 parentId 改變時，更新表單的 parent_id 值
   useEffect(() => {
+    console.log('🔄 NewFolderDialog - parentId changed:', parentId);
     form.setValue('parent_id', parentId);
   }, [parentId, form]);
 
   // 當對話框關閉時，重置表單
   useEffect(() => {
     if (!open) {
+      console.log('🔄 NewFolderDialog - Dialog closed, resetting form');
       form.reset({
         name: '',
         parent_id: null,
@@ -73,6 +75,8 @@ export function NewFolderDialog({
   }, [open, form]);
 
   const onSubmit = async (data: CreateFolderInput) => {
+    console.log('📤 NewFolderDialog - Submitting data:', data);
+    console.log('📤 NewFolderDialog - parent_id value:', data.parent_id);
     try {
       setIsSubmitting(true);
       await createFolder(data);
