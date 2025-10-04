@@ -6,7 +6,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, RefreshCw, Loader2 } from 'lucide-react';
+import { Plus, RefreshCw, Loader2, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FolderItem } from './FolderItem';
@@ -15,7 +15,7 @@ import type { FolderTreeNode } from '@/types/folder.types';
 
 interface FolderTreeProps {
   selectedFolderId: string | null;
-  onSelectFolder: (folderId: string) => void;
+  onSelectFolder: (folderId: string | null) => void;
   onAddRootFolder: () => void;
   onAddSubfolder: (folder: FolderTreeNode) => void;
   onEditFolder: (folder: FolderTreeNode) => void;
@@ -58,6 +58,21 @@ export function FolderTree({
 
   return (
     <div className="flex flex-col h-full">
+      {/* 返回首頁按鈕 */}
+      {selectedFolderId && (
+        <div className="px-4 py-3 border-b border-gray-200 bg-blue-50">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onSelectFolder(null)}
+            className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+          >
+            <Home className="h-4 w-4 mr-2" />
+            返回首頁
+          </Button>
+        </div>
+      )}
+
       {/* 標題列 */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
         <h2 className="text-lg font-semibold text-gray-800">資料夾</h2>

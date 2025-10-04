@@ -16,7 +16,7 @@ import { FOLDER_LEVELS } from '@/lib/constants/folder.constants';
 interface FolderContentProps {
   folderId: string;
   onSelectFolder: (folderId: string) => void;
-  onAddSubfolder: () => void;
+  onAddSubfolder: (parentFolder: FolderTreeNode) => void;
 }
 
 export function FolderContent({
@@ -27,7 +27,7 @@ export function FolderContent({
   const [currentFolder, setCurrentFolder] = useState<FolderTreeNode | null>(null);
   const [subfolders, setSubfolders] = useState<FolderTreeNode[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('questions');
+  const [activeTab, setActiveTab] = useState('subfolders');
 
   // 載入資料夾資訊
   useEffect(() => {
@@ -55,6 +55,9 @@ export function FolderContent({
           if (folder) {
             setCurrentFolder(folder);
             setSubfolders(folder.children || []);
+            console.log('📁 載入資料夾:', folder.name);
+            console.log('📂 子資料夾數量:', folder.children?.length || 0);
+            console.log('📂 子資料夾列表:', folder.children);
           }
         }
       } catch (error) {
@@ -123,7 +126,7 @@ export function FolderContent({
           <SubfoldersTab
             subfolders={subfolders}
             onSelectFolder={onSelectFolder}
-            onAddSubfolder={onAddSubfolder}
+            onAddSubfolder={() => onAddSubfolder(currentFolder)}
             canAddSubfolder={canAddSubfolder}
           />
         </TabsContent>

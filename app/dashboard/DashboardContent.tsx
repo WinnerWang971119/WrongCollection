@@ -114,11 +114,7 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
             <FolderContent
               folderId={selectedFolderId}
               onSelectFolder={setSelectedFolderId}
-              onAddSubfolder={() => {
-                // TODO: 需要當前資料夾的完整資訊來建立子資料夾
-                // 暫時使用空的處理，Phase 1D 會完善
-                console.log('Add subfolder for:', selectedFolderId);
-              }}
+              onAddSubfolder={handleAddSubfolder}
             />
           ) : (
             // 未選中資料夾：顯示歡迎頁面
