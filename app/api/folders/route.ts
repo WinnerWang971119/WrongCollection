@@ -9,6 +9,53 @@ import { FOLDER_LEVELS, FOLDER_VALIDATION_MESSAGES } from '@/lib/constants/folde
 import type { Folder, FolderTreeNode, ApiResponse } from '@/types/folder.types';
 
 /**
+ * 將平面資料夾列表轉換為樹狀結構
+ * @param folders - 平面資料夾列表（來自 get_folder_tree RPC）
+ * @returns 樹狀結構的資料夾列表
+ */
+function buildFolderTree(folders: Folder[]): FolderTreeNode[] {
+  // 創建 ID 到資料夾的映射
+  const folderMap = new Map<string, FolderTreeNode>();
+  const rootFolders: FolderTreeNode[] = [];
+
+  // 第一遍：將所有資料夾轉換為 FolderTreeNode 並建立映射
+  folders.forEach(folder => {
+    folderMap.set(folder.id, {
+      ...folder,
+      children: [],
+      path: folder.name, // 暫時設為資料夾名稱，稍後構建完整路徑
+      hasChildren: false // 暫時設為 false，稍後更新
+    });
+  });
+
+  // 第二遍：建立父子關係
+  folders.forEach(folder => {
+    const node = folderMap.get(folder.id)!;
+    
+    if (folder.parent_id === null) {
+      // 根資料夾
+      rootFolders.push(node);
+    } else {
+      // 子資料夾：添加到父資料夾的 children
+      const parent = folderMap.get(folder.parent_id);
+      if (parent) {
+        parent.children.push(node);
+        parent.hasChildren = true; // 更新父資料夾的 hasChildren
+        
+        // 構建完整路徑
+        node.path = `${parent.path} > ${node.name}`;
+      } else {
+        // 如果找不到父資料夾，視為根資料夾（容錯處理）
+        console.warn(`⚠️ Folder ${folder.id} has parent_id ${folder.parent_id} but parent not found`);
+        rootFolders.push(node);
+      }
+    }
+  });
+
+  return rootFolders;
+}
+
+/**
  * GET /api/folders
  * 取得使用者的所有資料夾
  * 
@@ -47,7 +94,7 @@ export async function GET(request: NextRequest) {
         rpcParams.p_parent_id = parentId;
       }
 
-      const { data: treeData, error: treeError } = await supabase
+      const { data: flatData, error: treeError } = await supabase
         .rpc('get_folder_tree', rpcParams);
 
       if (treeError) {
@@ -58,8 +105,11 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      // 將平面數據轉換為樹狀結構
+      const treeData = buildFolderTree((flatData as Folder[]) || []);
+
       return NextResponse.json<ApiResponse<FolderTreeNode[]>>(
-        { success: true, data: treeData || [] },
+        { success: true, data: treeData },
         { status: 200 }
       );
     }

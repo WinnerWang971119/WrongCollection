@@ -50,9 +50,6 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
 
   // 處理新增子資料夾
   const handleAddSubfolder = (parentFolder: FolderTreeNode) => {
-    console.log('🎯 handleAddSubfolder called with:', parentFolder);
-    console.log('🎯 Parent ID:', parentFolder.id);
-    console.log('🎯 Parent Name:', parentFolder.name);
     setParentFolderId(parentFolder.id);
     setParentFolderName(parentFolder.name);
     setIsNewFolderOpen(true);
@@ -118,6 +115,7 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
               folderId={selectedFolderId}
               onSelectFolder={setSelectedFolderId}
               onAddSubfolder={handleAddSubfolder}
+              refreshTrigger={refreshTrigger}
             />
           ) : (
             // 未選中資料夾：顯示歡迎頁面

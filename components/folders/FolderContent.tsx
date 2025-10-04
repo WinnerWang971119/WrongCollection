@@ -17,12 +17,14 @@ interface FolderContentProps {
   folderId: string;
   onSelectFolder: (folderId: string) => void;
   onAddSubfolder: (parentFolder: FolderTreeNode) => void;
+  refreshTrigger?: number; // 新增：用於觸發刷新
 }
 
 export function FolderContent({
   folderId,
   onSelectFolder,
   onAddSubfolder,
+  refreshTrigger = 0,
 }: FolderContentProps) {
   const [currentFolder, setCurrentFolder] = useState<FolderTreeNode | null>(null);
   const [subfolders, setSubfolders] = useState<FolderTreeNode[]>([]);
@@ -55,9 +57,6 @@ export function FolderContent({
           if (folder) {
             setCurrentFolder(folder);
             setSubfolders(folder.children || []);
-            console.log('📁 載入資料夾:', folder.name);
-            console.log('📂 子資料夾數量:', folder.children?.length || 0);
-            console.log('📂 子資料夾列表:', folder.children);
           }
         }
       } catch (error) {
@@ -68,7 +67,7 @@ export function FolderContent({
     }
 
     loadFolderData();
-  }, [folderId]);
+  }, [folderId, refreshTrigger]); // 添加 refreshTrigger 到依賴
 
   if (loading || !currentFolder) {
     return (

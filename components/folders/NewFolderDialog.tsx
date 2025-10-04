@@ -53,20 +53,20 @@ export function NewFolderDialog({
     resolver: zodResolver(createFolderSchema),
     defaultValues: {
       name: '',
-      parent_id: parentId,
+      parent_id: null,
     },
   });
 
-  // 當 parentId 改變時，更新表單的 parent_id 值
+  // 當對話框打開且 parentId 改變時，更新表單的 parent_id 值
   useEffect(() => {
-    console.log('🔄 NewFolderDialog - parentId changed:', parentId);
-    form.setValue('parent_id', parentId);
-  }, [parentId, form]);
+    if (open) {
+      form.setValue('parent_id', parentId);
+    }
+  }, [open, parentId, form]);
 
   // 當對話框關閉時，重置表單
   useEffect(() => {
     if (!open) {
-      console.log('🔄 NewFolderDialog - Dialog closed, resetting form');
       form.reset({
         name: '',
         parent_id: null,
@@ -75,8 +75,6 @@ export function NewFolderDialog({
   }, [open, form]);
 
   const onSubmit = async (data: CreateFolderInput) => {
-    console.log('📤 NewFolderDialog - Submitting data:', data);
-    console.log('📤 NewFolderDialog - parent_id value:', data.parent_id);
     try {
       setIsSubmitting(true);
       await createFolder(data);
