@@ -68,18 +68,18 @@ export interface QuestionListItem {
  */
 export interface CreateQuestionInput {
   // 步驟 1：基本資訊
-  title: string;                      // 標題（必填，1-100 字元）
-  question_text?: string;             // 題目文字（選填）
-  question_image_url?: string;        // 題目照片 URL（選填）
+  title: string;                           // 標題（必填，1-100 字元）
+  question_text?: string | null;           // 題目文字（選填）
+  question_image_url?: string | null;      // 題目照片 URL（選填）
   
   // 步驟 2：答案與詳解
-  my_answer: string;                  // 我的答案（必填）
-  correct_answer: string;             // 正確答案（必填）
-  explanation?: string;               // 詳解（選填）
-  difficulty: Difficulty;             // 難度（必填）
+  my_answer: string;                       // 我的答案（必填）
+  correct_answer: string;                  // 正確答案（必填）
+  explanation?: string | null;             // 詳解（選填）
+  difficulty: Difficulty;                  // 難度（必填）
   
   // 步驟 3：選擇資料夾
-  folder_ids: string[];               // 資料夾 ID 列表（至少一個）
+  folder_ids: string[];                    // 資料夾 ID 列表（至少一個）
 }
 
 /**
