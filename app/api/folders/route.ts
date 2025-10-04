@@ -37,11 +37,18 @@ export async function GET(request: NextRequest) {
 
     // 如果要樹狀結構，使用 get_folder_tree() 函數
     if (includeChildren) {
+      // 注意：SQL 函數參數順序是 (p_user_id, p_parent_id)
+      const rpcParams: { p_user_id: string; p_parent_id?: string | null } = {
+        p_user_id: user.id
+      };
+      
+      // 只有在需要篩選特定父資料夾時才傳 p_parent_id
+      if (parentId) {
+        rpcParams.p_parent_id = parentId;
+      }
+
       const { data: treeData, error: treeError } = await supabase
-        .rpc('get_folder_tree', { 
-          p_user_id: user.id,
-          p_parent_id: parentId || null 
-        });
+        .rpc('get_folder_tree', rpcParams);
 
       if (treeError) {
         console.error('Error fetching folder tree:', treeError);
@@ -162,13 +169,20 @@ export async function POST(request: NextRequest) {
     }
 
     // 檢查同名資料夾（同一父資料夾下不可重名）
-    const { data: existingFolder, error: checkError } = await supabase
+    let checkQuery = supabase
       .from('folders')
       .select('id')
       .eq('user_id', user.id)
-      .eq('name', name)
-      .eq('parent_id', parent_id || null)
-      .maybeSingle();
+      .eq('name', name);
+    
+    // 根據是否有 parent_id 使用不同的查詢
+    if (parent_id) {
+      checkQuery = checkQuery.eq('parent_id', parent_id);
+    } else {
+      checkQuery = checkQuery.is('parent_id', null);
+    }
+    
+    const { data: existingFolder, error: checkError } = await checkQuery.maybeSingle();
 
     if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
       console.error('Error checking duplicate folder:', checkError);
@@ -186,14 +200,21 @@ export async function POST(request: NextRequest) {
     }
 
     // 新增資料夾
+    const insertData: {
+      user_id: string;
+      name: string;
+      parent_id: string | null;
+      level: number;
+    } = {
+      user_id: user.id,
+      name,
+      parent_id: parent_id ? parent_id : null,
+      level: newLevel,
+    };
+
     const { data: newFolder, error: insertError } = await supabase
       .from('folders')
-      .insert({
-        user_id: user.id,
-        name,
-        parent_id: parent_id || null,
-        level: newLevel,
-      })
+      .insert(insertData)
       .select()
       .single();
 
