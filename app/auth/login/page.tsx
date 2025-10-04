@@ -25,8 +25,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  console.log('LoginPage 渲染，isLoading:', isLoading)
-
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -36,26 +34,19 @@ export default function LoginPage() {
   })
 
   async function onSubmit(data: LoginFormValues) {
-    console.log('\n========================================')
-    console.log('🚀 登入表單提交！')
-    console.log('   Email:', data.email)
-    console.log('========================================\n')
-    
     setIsLoading(true)
     setError(null)
 
     try {
+      console.log('🔐 登入中:', data.email)
+
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       })
 
-      console.log('📦 Supabase 回應:')
-      console.log('   authData:', authData ? 'exists' : 'null')
-      console.log('   authError:', authError?.message || 'none')
-
       if (authError) {
-        console.error('❌ 登入錯誤:', authError.message, '\n')
+        console.error('❌ 登入失敗:', authError.message)
         // 處理不同類型的錯誤
         if (authError.message.includes('Invalid login credentials')) {
           setError('Email 或密碼錯誤')
@@ -69,29 +60,22 @@ export default function LoginPage() {
         return
       }
 
-      console.log('✅ User:', authData.user?.email)
-      console.log('✅ Session:', authData.session ? '存在' : '不存在')
-
       // 檢查是否有 session（Email 已驗證）
       if (!authData.session) {
-        console.warn('⚠️ Session 不存在，帳號可能未驗證\n')
+        console.warn('⚠️ 帳號未驗證')
         setError('您的帳號尚未驗證，請檢查 Email 收件箱')
         return
       }
 
-      // 登入成功，延遲 800ms 確保 Cookie 完全寫入並同步
-      console.log('✅ 登入成功！等待 Cookie 同步...')
-      
-      // 先刷新 router 確保 server component 更新
+      console.log('✅ 登入成功，跳轉中...')
+
+      // 登入成功，延遲確保 Cookie 完全寫入並同步
       router.refresh()
+      await new Promise(resolve => setTimeout(resolve, 500))
       
-      // 延遲等待 cookie 同步（增加到 800ms）
-      await new Promise(resolve => setTimeout(resolve, 800))
-      
-      console.log('✅ Cookie 已同步，準備跳轉到 Dashboard...\n')
       window.location.href = '/dashboard'
     } catch (err) {
-      console.error('❌ 登入發生未知錯誤:', err, '\n')
+      console.error('❌ 登入錯誤:', err)
       setError('發生未知錯誤，請稍後再試')
     } finally {
       setIsLoading(false)
@@ -161,7 +145,6 @@ export default function LoginPage() {
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 disabled={isLoading}
-                onClick={() => console.log('🖱️ 登入按鈕被點擊！isLoading:', isLoading)}
               >
                 {isLoading ? '登入中...' : '登入'}
               </Button>

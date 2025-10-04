@@ -39,15 +39,12 @@ export default function SignupPage() {
   })
 
   async function onSubmit(data: SignupFormValues) {
-    console.log('\n========================================')
-    console.log('📝 註冊表單提交！')
-    console.log('   Email:', data.email)
-    console.log('========================================\n')
-    
     setIsLoading(true)
     setError(null)
 
     try {
+      console.log('📝 註冊中:', data.email)
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -56,12 +53,8 @@ export default function SignupPage() {
         },
       })
 
-      console.log('📦 註冊回應:')
-      console.log('   authData:', authData ? 'exists' : 'null')
-      console.log('   authError:', authError?.message || 'none')
-
       if (authError) {
-        console.error('❌ 註冊錯誤:', authError.message, '\n')
+        console.error('❌ 註冊失敗:', authError.message)
         // 處理不同類型的錯誤
         if (authError.message.includes('User already registered')) {
           setError('此 Email 已被註冊')
@@ -73,23 +66,17 @@ export default function SignupPage() {
         return
       }
 
-      console.log('✅ 註冊成功！User:', authData.user?.email)
-      console.log('✅ Session:', authData.session ? '存在' : '不存在（需要驗證）')
+      console.log('✅ 註冊成功，請查看 Email 驗證信')
 
-      // 註冊成功
-      // 如果需要 Email 驗證，authData.user 存在但 session 可能為 null
+      // 註冊成功，跳轉到驗證提示頁面
       if (authData.user && !authData.session) {
-        // 需要 Email 驗證
-        console.log('✅ 跳轉到驗證提示頁面...\n')
         router.push('/auth/verify-email')
       } else {
-        // 不需要驗證或已自動登入
-        console.log('✅ 自動登入，跳轉到 Dashboard...\n')
         router.push('/dashboard')
         router.refresh()
       }
     } catch (err) {
-      console.error('❌ 註冊發生未知錯誤:', err, '\n')
+      console.error('❌ 註冊錯誤:', err)
       setError('發生未知錯誤，請稍後再試')
     } finally {
       setIsLoading(false)
