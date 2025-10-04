@@ -8,3 +8,7 @@ export { FolderItem } from './FolderItem';
 export { NewFolderDialog } from './NewFolderDialog';
 export { EditFolderDialog } from './EditFolderDialog';
 export { DeleteFolderDialog } from './DeleteFolderDialog';
+export { SubfoldersTab } from './SubfoldersTab';
+export { QuestionsTab } from './QuestionsTab';
+export { AllQuestionsTab } from './AllQuestionsTab';
+export { FolderContent } from './FolderContent';

@@ -8,12 +8,13 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, FileText, FolderOpen } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import {
   FolderTree,
   NewFolderDialog,
   EditFolderDialog,
   DeleteFolderDialog,
+  FolderContent,
 } from '@/components/folders';
 import LogoutButton from './LogoutButton';
 import type { FolderTreeNode } from '@/types/folder.types';
@@ -109,38 +110,16 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
         {/* 內容區域 */}
         <div className="flex-1 overflow-auto p-6">
           {selectedFolderId ? (
-            // 選中資料夾：顯示錯題列表
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-800">錯題列表</h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    資料夾 ID: {selectedFolderId}
-                  </p>
-                </div>
-                <Button
-                  className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  新增錯題
-                </Button>
-              </div>
-
-              {/* 空狀態 */}
-              <Card className="border-blue-100">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <FileText className="h-16 w-16 text-gray-300 mb-4" />
-                  <p className="text-gray-500 mb-2">此資料夾還沒有錯題</p>
-                  <p className="text-sm text-gray-400 mb-4">
-                    點擊上方按鈕新增第一道錯題
-                  </p>
-                  <Button variant="outline" size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    新增錯題
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+            // 選中資料夾：顯示 Tab 內容
+            <FolderContent
+              folderId={selectedFolderId}
+              onSelectFolder={setSelectedFolderId}
+              onAddSubfolder={() => {
+                // TODO: 需要當前資料夾的完整資訊來建立子資料夾
+                // 暫時使用空的處理，Phase 1D 會完善
+                console.log('Add subfolder for:', selectedFolderId);
+              }}
+            />
           ) : (
             // 未選中資料夾：顯示歡迎頁面
             <div className="max-w-6xl mx-auto space-y-8">

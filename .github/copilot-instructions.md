@@ -17,6 +17,42 @@
 ### ✅ 已完成
 - [x] Next.js 15 + TypeScript ## 🔄 更新日誌
 
+### 2025-10-05
+- ✅ **Phase 1C 完成：資料夾管理系統 + Dashboard UX 優化**
+- ✅ 資料夾 CRUD 完整功能
+  - 創建、編輯、刪除資料夾
+  - 4 層階層限制強制執行
+  - 樹狀結構顯示與展開/收合
+  - 子資料夾 CASCADE 刪除
+- ✅ Dashboard 首頁設計（Option F - 卡片網格）
+  - 歡迎訊息與漸層標題
+  - 兩大功能卡片：錯題登錄、智能複習
+  - 四個統計卡片：總錯題、已複習、本周新增、資料夾數
+  - 快速開始指南
+- ✅ **資料夾內容顯示（Option B - Tab 切換式）**
+  - **子資料夾 Tab**：卡片式顯示下一層資料夾，點擊跳轉
+  - **錯題本人 Tab**：顯示本資料夾的錯題（不含子資料夾）
+  - **全部錯題 Tab**：顯示本資料夾+所有子資料夾的錯題統計
+  - Tab 頭顯示數量 Badge
+  - 支援「智能複習本層」和「智能複習全部」
+- ✅ Sidebar 優化
+  - 寬度從 320px 增加到 400px
+  - 縮排從每層 20px 增加到 28px
+  - 更清晰的階層視覺效果
+- ✅ 新增元件
+  - SubfoldersTab.tsx - 子資料夾卡片網格
+  - QuestionsTab.tsx - 錯題本人顯示（骨架）
+  - AllQuestionsTab.tsx - 全部錯題統計（骨架）
+  - FolderContent.tsx - Tab 容器與狀態管理
+- ✅ Bug 修復
+  - @radix-ui/react-icons 依賴安裝
+  - RPC 函數參數處理
+  - NULL 值 SQL 查詢
+  - 子資料夾創建資料傳遞
+  - HTML 嵌套錯誤修復
+  - has_subfolders 參數名稱
+  - NewFolderDialog parent_id 同步
+
 ### 2025-10-04
 - ✅ **Phase 1B 完成：認證系統**
 - ✅ 建立完整的 Email + 密碼認證流程
@@ -60,9 +96,9 @@
 
 ---
 
-**最後更新**: 2025-10-04 18:00
-**當前版本**: v0.2.0-dev
-**開發狀態**: Phase 1B 完成，準備進入 Phase 1C（資料夾管理系統）
+**最後更新**: 2025-10-05 20:00
+**當前版本**: v0.3.0-dev
+**開發狀態**: Phase 1C 完成，準備進入 Phase 1D（錯題管理系統）
 - [x] shadcn/ui 設定
 - [x] Supabase 連接配置
 - [ ] Landing Page 完整實作
@@ -181,14 +217,44 @@ questions {
 - 「已有帳號？登入」連結
 
 ### `/dashboard` - 主控台（需登入）
+
+**未選中資料夾時（首頁）**：
 ```
 +----------------------+---------------------------+
 | Top Nav              | Logo | User Menu (Logout) |
 +----------------------+---------------------------+
-| Sidebar (250px)      | Main Content             |
-| - 新增資料夾按鈕      | - 麵包屑導航              |
-| - 資料夾樹狀列表      | - 新增錯題按鈕            |
-| - 統計資訊           | - 錯題卡片列表            |
+| Sidebar (400px)      | Main Content             |
+| - 新增資料夾按鈕      | - 歡迎標題（漸層）        |
+| - 資料夾樹狀列表      | - 兩大功能卡片           |
+| - 統計資訊           |   • 錯題登錄             |
+|                      |   • 智能複習             |
+|                      | - 快速統計（4個卡片）    |
+|                      | - 快速開始指南           |
++----------------------+---------------------------+
+```
+
+**選中資料夾時（Tab 切換式 - Option B）**：
+```
++----------------------+---------------------------+
+| Top Nav              | Logo | User Menu (Logout) |
++----------------------+---------------------------+
+| Sidebar (400px)      | Main Content             |
+| - 新增資料夾按鈕      | - 麵包屑 + Level Badge   |
+| - 資料夾樹狀列表      | - Tab 導航列             |
+| - 統計資訊           |   [子資料夾(3)] [錯題本人(5)] [全部錯題(15)] |
+|                      |                           |
+|                      | - Tab 內容區             |
+|                      |   【子資料夾 Tab】        |
+|                      |   卡片網格顯示子資料夾    |
+|                      |   點擊卡片跳轉           |
+|                      |                           |
+|                      |   【錯題本人 Tab】        |
+|                      |   只顯示本層錯題         |
+|                      |   [新增錯題] [智能複習本層]|
+|                      |                           |
+|                      |   【全部錯題 Tab】        |
+|                      |   本層+子層所有錯題      |
+|                      |   [篩選] [智能複習全部]  |
 +----------------------+---------------------------+
 ```
 
@@ -237,28 +303,101 @@ export function middleware(request: NextRequest) {
       /signup/page.tsx           # 註冊頁
   /(protected)
     /dashboard
-      /page.tsx                  # Dashboard 主頁
-      /layout.tsx                # Dashboard 布局
+      /page.tsx                  # Dashboard 主頁 (Server Component)
+      /DashboardContent.tsx      # Dashboard 內容 (Client Component)
+      /LogoutButton.tsx          # 登出按鈕
+  /api
+    /folders
+      /route.ts                  # GET, POST folders
+      /[id]/route.ts             # PATCH, DELETE folder
 /components
   /ui/                           # shadcn/ui 元件
-  /landing/
-    /Hero.tsx
-    /Features.tsx
-    /Footer.tsx
-  /auth/
-    /LoginForm.tsx
-    /SignupForm.tsx
-  /dashboard/
-    /Sidebar.tsx
-    /TopNav.tsx
-    /FolderTree.tsx
-    /QuestionCard.tsx
+  /folders/
+    /FolderTree.tsx              # 資料夾樹狀列表
+    /FolderItem.tsx              # 單個資料夾項目
+    /FolderContent.tsx           # 資料夾內容容器（Tab）
+    /SubfoldersTab.tsx           # 子資料夾 Tab
+    /QuestionsTab.tsx            # 錯題本人 Tab（骨架）
+    /AllQuestionsTab.tsx         # 全部錯題 Tab（骨架）
+    /NewFolderDialog.tsx         # 新增資料夾對話框
+    /EditFolderDialog.tsx        # 編輯資料夾對話框
+    /DeleteFolderDialog.tsx      # 刪除資料夾對話框
+    /index.ts                    # 統一導出
 /lib
-  /supabase.ts                   # Supabase client
-  /auth.ts                       # 認證輔助函數
+  /supabase/
+    /client.ts                   # Client Component 用
+    /server.ts                   # Server Component 用
+    /middleware.ts               # Middleware 用
+  /api/
+    /folder.api.ts               # 資料夾 API 客戶端
+  /constants/
+    /folder.constants.ts         # 資料夾常數（MAX_LEVEL=4）
+  /validations/
+    /folder.validation.ts        # Zod 驗證 schema
 /types
-  /database.types.ts             # Supabase 生成的型別
+  /folder.types.ts               # 資料夾型別定義
+/supabase
+  /migrations/
+    /001_create_folders_table.sql # 資料夾表 SQL
 ```
+
+---
+
+## 🎯 資料夾內容顯示設計（Option B - Tab 切換式）
+
+### Tab 結構
+選中資料夾後，顯示三個 Tab：
+
+1. **子資料夾 Tab**（預設）
+   - 用途：顯示當前資料夾的下一層子資料夾
+   - 布局：卡片網格（3-4 列）
+   - 每個卡片顯示：
+     - 資料夾名稱
+     - Level Badge
+     - 題目數量（Phase 1D 實作）
+     - 子資料夾數量（如有）
+     - 「進入」按鈕
+   - 點擊卡片：跳轉到該資料夾
+   - 空狀態：顯示「此資料夾沒有子資料夾」+ 新增按鈕
+   - 操作：[+ 新增子資料夾] 按鈕（如未達 Level 4）
+
+2. **錯題本人 Tab**
+   - 用途：只顯示**本資料夾**的錯題（不含子資料夾）
+   - 布局：列表式錯題卡片
+   - 每個卡片顯示：
+     - 題目預覽
+     - 難度星星
+     - 錯誤次數
+     - 最後複習時間
+     - 標籤
+   - 操作：
+     - [+ 新增錯題] - 跳轉到錯題表單
+     - [🎯 智能複習本層] - 開始複習本資料夾錯題
+   - 空狀態：顯示「此資料夾還沒有錯題」+ 記錄小技巧
+   - **骨架版本**：目前僅顯示空狀態和按鈕，Phase 1D 實作完整功能
+
+3. **全部錯題 Tab**
+   - 用途：顯示**本資料夾 + 所有子資料夾**的錯題
+   - 布局：按資料夾分組顯示
+   - 統計卡片（3個）：
+     - 總題數（藍色）
+     - 已複習（綠色）
+     - 待複習（橙色）
+   - 操作：
+     - [🔍 篩選] - 按難度、標籤、複習狀態篩選
+     - [🎯 智能複習全部] - 複習所有子資料夾的錯題
+   - 空狀態：顯示「此資料夾及子資料夾都沒有錯題」+ 功能說明
+   - **骨架版本**：目前僅顯示統計和空狀態，Phase 1D 實作完整功能
+
+### Tab 切換邏輯
+- 預設顯示：「錯題本人」Tab
+- Badge 數量提示：每個 Tab 標籤顯示項目數量
+- 自動切換：點擊子資料夾卡片後，跳轉到該資料夾並重置為「錯題本人」Tab
+
+### 麵包屑導航
+- 顯示當前資料夾名稱
+- 顯示 Level Badge（如：Level 2）
+- TODO Phase 1D：實作完整路徑（數學 > 代數 > 二次方程式）
 
 ---
 
