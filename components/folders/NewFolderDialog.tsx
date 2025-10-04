@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
@@ -56,6 +56,21 @@ export function NewFolderDialog({
       parent_id: parentId,
     },
   });
+
+  // 當 parentId 改變時，更新表單的 parent_id 值
+  useEffect(() => {
+    form.setValue('parent_id', parentId);
+  }, [parentId, form]);
+
+  // 當對話框關閉時，重置表單
+  useEffect(() => {
+    if (!open) {
+      form.reset({
+        name: '',
+        parent_id: null,
+      });
+    }
+  }, [open, form]);
 
   const onSubmit = async (data: CreateFolderInput) => {
     try {

@@ -166,7 +166,7 @@ export async function DELETE(
 
     // 檢查是否有子資料夾
     const { data: hasSubfolders, error: checkError } = await supabase
-      .rpc('has_subfolders', { folder_id: folderId });
+      .rpc('has_subfolders', { p_folder_id: folderId });
 
     if (checkError) {
       console.error('Error checking subfolders:', checkError);
