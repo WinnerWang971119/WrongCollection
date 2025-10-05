@@ -135,6 +135,7 @@ export function FolderContent({
           <QuestionsTab
             folderId={folderId}
             folderName={currentFolder.name}
+            refreshTrigger={refreshTrigger}
           />
         </TabsContent>
 
@@ -143,6 +144,7 @@ export function FolderContent({
           <AllQuestionsTab
             folderId={folderId}
             folderName={currentFolder.name}
+            refreshTrigger={refreshTrigger}
           />
         </TabsContent>
       </Tabs>

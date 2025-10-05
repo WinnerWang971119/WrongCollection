@@ -11,18 +11,21 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { getQuestions, deleteQuestion } from '@/lib/api/question.api';
-import { QuestionCard, NewQuestionDialog } from '@/components/questions';
+import { QuestionCard, NewQuestionDialog, QuestionDetailDialog } from '@/components/questions';
 import type { QuestionListItem } from '@/types/question.types';
 
 interface QuestionsTabProps {
   folderId: string;
   folderName: string;
+  refreshTrigger?: number;
 }
 
-export function QuestionsTab({ folderId, folderName }: QuestionsTabProps) {
+export function QuestionsTab({ folderId, folderName, refreshTrigger = 0 }: QuestionsTabProps) {
   const [questions, setQuestions] = useState<QuestionListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewDialog, setShowNewDialog] = useState(false);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
 
   // 載入錯題列表
   const loadQuestions = async () => {
@@ -41,10 +44,10 @@ export function QuestionsTab({ folderId, folderName }: QuestionsTabProps) {
     }
   };
 
-  // 初始載入
+  // 初始載入和 refreshTrigger 變化時重新載入
   useEffect(() => {
     loadQuestions();
-  }, [folderId]);
+  }, [folderId, refreshTrigger]);
 
   // 刪除錯題
   const handleDelete = async (questionId: string) => {
@@ -206,8 +209,8 @@ export function QuestionsTab({ folderId, folderName }: QuestionsTabProps) {
               key={question.id}
               question={question}
               onClick={() => {
-                // TODO: Phase 1E - 開啟詳情對話框
-                toast.info('錯題詳情功能開發中...');
+                setSelectedQuestionId(question.id);
+                setShowDetailDialog(true);
               }}
               onEdit={() => {
                 // TODO: Phase 1E - 開啟編輯對話框
@@ -225,6 +228,13 @@ export function QuestionsTab({ folderId, folderName }: QuestionsTabProps) {
         onOpenChange={setShowNewDialog}
         defaultFolderId={folderId}
         onSuccess={handleNewSuccess}
+      />
+
+      {/* 錯題詳情對話框 */}
+      <QuestionDetailDialog
+        open={showDetailDialog}
+        onOpenChange={setShowDetailDialog}
+        questionId={selectedQuestionId}
       />
     </>
   );

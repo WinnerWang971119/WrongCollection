@@ -71,7 +71,7 @@ export function QuestionCard({
   const hasFolder = 'folders' in question && question.folders;
 
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-200">
+    <Card className="hover:shadow-lg transition-shadow duration-200 hover:border-blue-200">
       <CardContent className="p-4">
         <div className="space-y-3">
           {/* 標題與難度 */}
@@ -136,20 +136,30 @@ export function QuestionCard({
               variant="outline"
               size="sm"
               onClick={onClick}
-              className="flex-1"
+              className="flex-1 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-400 active:scale-95 transition-all duration-150"
             >
               <Eye className="mr-2 h-4 w-4" />
               查看詳情
             </Button>
 
             {onEdit && (
-              <Button variant="ghost" size="sm" onClick={onEdit}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onEdit}
+                className="hover:bg-gray-100 active:scale-95 transition-all duration-150"
+              >
                 <Edit className="h-4 w-4" />
               </Button>
             )}
 
             {onDelete && (
-              <Button variant="ghost" size="sm" onClick={onDelete}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onDelete}
+                className="hover:bg-red-50 hover:text-red-600 active:scale-95 transition-all duration-150"
+              >
                 <Trash2 className="h-4 w-4 text-red-500" />
               </Button>
             )}

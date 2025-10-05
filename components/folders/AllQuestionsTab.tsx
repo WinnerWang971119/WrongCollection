@@ -12,18 +12,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { getQuestions, deleteQuestion } from '@/lib/api/question.api';
-import { QuestionCard } from '@/components/questions';
+import { QuestionCard, QuestionDetailDialog } from '@/components/questions';
 import type { QuestionListItem } from '@/types/question.types';
 
 interface AllQuestionsTabProps {
   folderId: string;
   folderName: string;
+  refreshTrigger?: number;
 }
 
-export function AllQuestionsTab({ folderId, folderName }: AllQuestionsTabProps) {
+export function AllQuestionsTab({ folderId, folderName, refreshTrigger = 0 }: AllQuestionsTabProps) {
   const [questions, setQuestions] = useState<QuestionListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [difficultyFilter, setDifficultyFilter] = useState<'all' | 'easy' | 'medium' | 'hard'>('all');
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
 
   // 載入錯題列表（包含子資料夾）
   const loadQuestions = async () => {
@@ -43,10 +46,10 @@ export function AllQuestionsTab({ folderId, folderName }: AllQuestionsTabProps) 
     }
   };
 
-  // 初始載入
+  // 初始載入和 refreshTrigger 變化時重新載入
   useEffect(() => {
     loadQuestions();
-  }, [folderId, difficultyFilter]);
+  }, [folderId, difficultyFilter, refreshTrigger]);
 
   // 刪除錯題
   const handleDelete = async (questionId: string) => {
@@ -240,8 +243,8 @@ export function AllQuestionsTab({ folderId, folderName }: AllQuestionsTabProps) 
             key={question.id}
             question={question}
             onClick={() => {
-              // TODO: Phase 1E - 開啟詳情對話框
-              toast.info('錯題詳情功能開發中...');
+              setSelectedQuestionId(question.id);
+              setShowDetailDialog(true);
             }}
             onEdit={() => {
               // TODO: Phase 1E - 開啟編輯對話框
@@ -251,6 +254,13 @@ export function AllQuestionsTab({ folderId, folderName }: AllQuestionsTabProps) 
           />
         ))}
       </div>
+
+      {/* 錯題詳情對話框 */}
+      <QuestionDetailDialog
+        open={showDetailDialog}
+        onOpenChange={setShowDetailDialog}
+        questionId={selectedQuestionId}
+      />
     </div>
   );
 }

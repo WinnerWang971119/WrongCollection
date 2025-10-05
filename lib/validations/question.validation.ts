@@ -35,9 +35,25 @@ export const questionTextSchema = z
  */
 export const questionImageSchema = z
   .string()
-  .url('請提供有效的圖片 URL')
+  .trim()
   .optional()
-  .nullable();
+  .nullable()
+  .refine(
+    (val) => {
+      // 如果為空字串、null 或 undefined，就通過驗證
+      if (!val || val === '') return true;
+      // 如果有值，就驗證是否為有效的 URL
+      try {
+        new URL(val);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    {
+      message: '請提供有效的圖片 URL',
+    }
+  );
 
 /**
  * 我的答案驗證

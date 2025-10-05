@@ -16,6 +16,7 @@ import {
   DeleteFolderDialog,
   FolderContent,
 } from '@/components/folders';
+import { NewQuestionDialog } from '@/components/questions';
 import LogoutButton from './LogoutButton';
 import type { FolderTreeNode } from '@/types/folder.types';
 
@@ -32,6 +33,7 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
   const [isEditFolderOpen, setIsEditFolderOpen] = useState(false);
   const [isDeleteFolderOpen, setIsDeleteFolderOpen] = useState(false);
+  const [isNewQuestionOpen, setIsNewQuestionOpen] = useState(false);
 
   // 新增子資料夾狀態
   const [parentFolderId, setParentFolderId] = useState<string | null>(null);
@@ -142,7 +144,10 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
               {/* 主功能卡片 */}
               <div className="grid md:grid-cols-2 gap-6">
                 {/* 功能1: 錯題登錄 */}
-                <Card className="group hover:shadow-2xl transition-all duration-300 border-2 hover:border-blue-400 cursor-pointer">
+                <Card
+                  className="group hover:shadow-2xl transition-all duration-300 border-2 hover:border-blue-400 cursor-pointer"
+                  onClick={() => setIsNewQuestionOpen(true)}
+                >
                   <CardContent className="p-8">
                     <div className="flex items-start gap-6">
                       <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
@@ -285,6 +290,12 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
         onOpenChange={setIsDeleteFolderOpen}
         folder={deletingFolder}
         onSuccess={handleDeleteSuccess}
+      />
+
+      <NewQuestionDialog
+        open={isNewQuestionOpen}
+        onOpenChange={setIsNewQuestionOpen}
+        onSuccess={handleSuccess}
       />
     </div>
   );
