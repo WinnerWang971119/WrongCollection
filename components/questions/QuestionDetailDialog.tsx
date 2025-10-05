@@ -250,7 +250,7 @@ export function QuestionDetailDialog({
               
               {/* 題目圖片（多張圖片網格顯示） */}
               {question.question_images && question.question_images.length > 0 && (
-                <div className="mb-4 grid grid-cols-2 gap-3">
+                <div className={`mb-4 ${question.question_images.length === 1 ? '' : 'grid grid-cols-2 gap-3'}`}>
                   {question.question_images.map((imagePath, index) => {
                     const imageUrl = getImagePublicUrl(imagePath);
                     return (
@@ -331,7 +331,7 @@ export function QuestionDetailDialog({
                     
                     {/* 詳解圖片（多張圖片網格顯示） */}
                     {question.explanation_images && question.explanation_images.length > 0 && (
-                      <div className="mb-4 grid grid-cols-2 gap-3">
+                      <div className={`mb-4 ${question.explanation_images.length === 1 ? '' : 'grid grid-cols-2 gap-3'}`}>
                         {question.explanation_images.map((imagePath, index) => {
                           const imageUrl = getImagePublicUrl(imagePath);
                           return (
