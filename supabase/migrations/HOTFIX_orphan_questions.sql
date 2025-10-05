@@ -1,11 +1,14 @@
 -- ============================================
--- 完整修復腳本：修復新題目逾期問題
--- 執行：複製所有內容到 Supabase SQL Editor → Run
+-- HOTFIX: 修復刪除資料夾後錯題仍出現在複習佇列
+-- 問題：刪除資料夾後，錯題失去所有資料夾關聯，但仍出現在複習佇列
+-- 解決：修改 get_due_questions RPC 函數，只返回至少屬於一個資料夾的錯題
+-- 日期：2025-10-06
 -- ============================================
 
--- 🔧 第 1 步：更新 RPC 函數（修復新題目逾期判定）
+-- 1. 刪除舊函數
 DROP FUNCTION IF EXISTS get_due_questions(UUID, INTEGER);
 
+-- 2. 重新建立函數，新增資料夾檢查
 CREATE OR REPLACE FUNCTION get_due_questions(
   p_user_id UUID,
   p_limit INTEGER DEFAULT 50
@@ -36,13 +39,13 @@ BEGIN
     q.next_review_date,
     q.last_quality,
     q.repetitions,
-    -- ✅ 修復：新題目不算逾期
+    -- 新題目不算逾期
     CASE 
       WHEN q.review_state = 'new' AND q.next_review_date IS NULL THEN FALSE
       WHEN q.next_review_date IS NOT NULL AND q.next_review_date < NOW() THEN TRUE
       ELSE FALSE
     END AS is_overdue,
-    -- ✅ 修復：新題目的逾期天數為 0
+    -- 新題目的逾期天數為 0
     CASE 
       WHEN q.review_state = 'new' AND q.next_review_date IS NULL THEN 0
       WHEN q.next_review_date IS NOT NULL AND q.next_review_date < NOW() 
@@ -82,24 +85,43 @@ BEGIN
 END;
 $$;
 
--- 🔧 第 2 步：清除新題目的錯誤日期
-UPDATE questions 
-SET next_review_date = NULL
-WHERE review_state = 'new' AND next_review_date IS NOT NULL;
+COMMENT ON FUNCTION get_due_questions(UUID, INTEGER) IS '取得今日待複習題目（只返回至少屬於一個資料夾的錯題）';
 
 -- ============================================
--- ✅ 修復完成！
--- 
--- 修復內容：
--- 1. 新題目（review_state='new' 且 next_review_date=NULL）不會被判定為逾期
--- 2. is_overdue 和 days_overdue 邏輯更新
--- 3. 清除所有新題目的錯誤 next_review_date
--- 4. RLS 政策確保已刪除的題目不出現
--- 
--- 測試步驟：
--- 1. 執行此 SQL
--- 2. 刷新瀏覽器（Ctrl + Shift + R）
--- 3. 點擊「智能複習」
--- 4. 新題目應該不會顯示為「逾期」
--- 5. 已刪除的題目不會出現
+-- 測試腳本
 -- ============================================
+
+-- 測試 1: 查看所有錯題及其資料夾數量
+-- SELECT 
+--   q.id,
+--   q.title,
+--   q.review_state,
+--   COUNT(qf.folder_id) as folder_count
+-- FROM questions q
+-- LEFT JOIN question_folders qf ON q.question_id = qf.question_id
+-- WHERE q.user_id = auth.uid()
+-- GROUP BY q.id, q.title, q.review_state;
+
+-- 測試 2: 查看孤兒錯題（不屬於任何資料夾）
+-- SELECT 
+--   q.id,
+--   q.title,
+--   q.review_state,
+--   q.created_at
+-- FROM questions q
+-- WHERE q.user_id = auth.uid()
+--   AND NOT EXISTS (
+--     SELECT 1 
+--     FROM question_folders qf
+--     WHERE qf.question_id = q.id
+--   );
+
+-- 測試 3: 呼叫修復後的函數
+-- SELECT * FROM get_due_questions(auth.uid(), 50);
+
+-- ============================================
+-- 預期結果
+-- ============================================
+-- 1. 刪除資料夾後，該資料夾的錯題如果沒有其他資料夾，將不會出現在複習佇列
+-- 2. 如果錯題屬於多個資料夾，刪除其中一個資料夾後，錯題仍會出現
+-- 3. 使用者只能看到屬於自己資料夾的錯題

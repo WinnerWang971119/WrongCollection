@@ -100,6 +100,14 @@ BEGIN
     END AS days_overdue
   FROM questions q
   WHERE q.user_id = p_user_id
+    -- ✅ 新增：只返回至少屬於一個資料夾的錯題
+    AND EXISTS (
+      SELECT 1 
+      FROM question_folders qf
+      INNER JOIN folders f ON qf.folder_id = f.id
+      WHERE qf.question_id = q.id
+        AND f.user_id = p_user_id
+    )
     AND (
       -- 新題目（從未複習）
       (q.review_state = 'new' AND (q.next_review_date IS NULL OR q.next_review_date <= NOW()))

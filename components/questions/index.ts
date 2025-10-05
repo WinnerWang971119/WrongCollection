@@ -10,3 +10,4 @@ export { EditQuestionDialog } from './EditQuestionDialog';
 export { QuestionCard } from './QuestionCard';
 export { QuestionDetailDialog } from './QuestionDetailDialog';
 export { ReviewQueue } from './ReviewQueue';
+export { default as CustomReviewDialog } from './CustomReviewDialog';

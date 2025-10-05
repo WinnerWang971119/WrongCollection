@@ -313,3 +313,46 @@ export async function getReviewStreak(): Promise<{
 
   return data.data;
 }
+
+/**
+ * 自訂複習題目查詢
+ * 
+ * @param filters 篩選條件
+ * @returns 符合條件的題目列表
+ */
+export async function getCustomReviewQuestions(filters: {
+  folder_ids?: string[];
+  difficulties?: string[];
+  review_states?: string[];
+  days_since_review?: number;
+  min_wrong_count?: number;
+  max_wrong_count?: number;
+  limit?: number;
+}): Promise<Array<{
+  id: string;
+  title: string;
+  difficulty: string;
+  wrong_count: number;
+  review_state: string;
+  next_review_date: string | null;
+  last_quality: number | null;
+  repetitions: number;
+  last_reviewed_at: string | null;
+  created_at: string;
+}>> {
+  const response = await fetch('/api/questions/custom-review', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(filters),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.error || '查詢失敗');
+  }
+
+  return data.data || [];
+}

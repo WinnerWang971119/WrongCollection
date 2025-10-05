@@ -25,11 +25,13 @@ import {
   RefreshCw,
   TrendingUp,
   BookOpen,
+  Settings,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getDueQuestions } from '@/lib/api/question.api';
 import { getStateLabel, getStateColor } from '@/lib/algorithms/sm2';
 import { QuestionDetailDialog } from './QuestionDetailDialog';
+import CustomReviewDialog from './CustomReviewDialog';
 
 interface DueQuestion {
   id: string;
@@ -58,6 +60,8 @@ export function ReviewQueue({ limit = 50, onStartReview }: ReviewQueueProps) {
   const [currentQuestionId, setCurrentQuestionId] = useState<string | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
+  const [showCustomDialog, setShowCustomDialog] = useState(false);
+  const [isCustomMode, setIsCustomMode] = useState(false);
 
   // 載入待複習題目
   const loadDueQuestions = async (isRefresh = false) => {
@@ -125,6 +129,14 @@ export function ReviewQueue({ limit = 50, onStartReview }: ReviewQueueProps) {
     }
   };
 
+  // 自訂複習
+  const handleCustomReview = (customQuestions: any[]) => {
+    setQuestions(customQuestions);
+    setIsCustomMode(true);
+    setCompletedCount(0);
+    toast.success(`✅ 已載入 ${customQuestions.length} 題自訂複習題目`);
+  };
+
   // 點擊特定題目
   const handleQuestionClick = (questionId: string) => {
     setCurrentQuestionId(questionId);
@@ -170,21 +182,35 @@ export function ReviewQueue({ limit = 50, onStartReview }: ReviewQueueProps) {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
-              今日複習佇列
+              {isCustomMode ? '自訂複習' : '今日複習佇列'}
               {questions.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
                   {questions.length} 題
                 </Badge>
               )}
             </CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => loadDueQuestions(true)}
-              disabled={refreshing}
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCustomDialog(true)}
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                自訂複習
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setIsCustomMode(false);
+                  loadDueQuestions(true);
+                }}
+                disabled={refreshing}
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
@@ -347,6 +373,13 @@ export function ReviewQueue({ limit = 50, onStartReview }: ReviewQueueProps) {
         onOpenChange={setShowDetailDialog}
         questionId={currentQuestionId}
         onReviewComplete={handleReviewComplete}
+      />
+
+      {/* 自訂複習對話框 */}
+      <CustomReviewDialog
+        open={showCustomDialog}
+        onOpenChange={setShowCustomDialog}
+        onStartReview={handleCustomReview}
       />
     </>
   );
