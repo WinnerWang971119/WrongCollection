@@ -74,7 +74,7 @@ export async function POST(
     if (result === 'correct') {
       // 答對：錯誤次數 -1（最低 0）
       const { error: updateError } = await supabase.rpc('mark_as_mastered', {
-        question_id: questionId,
+        p_question_id: questionId,
       });
 
       if (updateError) {
@@ -87,7 +87,7 @@ export async function POST(
     } else {
       // 答錯：錯誤次數 +1
       const { error: updateError } = await supabase.rpc('increment_wrong_count', {
-        question_id: questionId,
+        p_question_id: questionId,
       });
 
       if (updateError) {

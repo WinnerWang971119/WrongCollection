@@ -39,15 +39,6 @@ export function QuestionDetailDialog({
   const [submitting, setSubmitting] = useState(false);
 
   // 載入錯題詳情
-  useEffect(() => {
-    if (open && questionId) {
-      loadQuestion();
-    } else {
-      setQuestion(null);
-      setShowAnswer(false);
-    }
-  }, [open, questionId]);
-
   const loadQuestion = async () => {
     if (!questionId) return;
 
@@ -61,6 +52,97 @@ export function QuestionDetailDialog({
       setLoading(false);
     }
   };
+
+  // 處理答對
+  const handleCorrect = async () => {
+    if (!questionId || submitting) return;
+
+    try {
+      setSubmitting(true);
+      await markAsCorrect(questionId);
+      toast.success('✅ 已標記為答對！錯誤次數 -1');
+      
+      // 重新載入錯題資料
+      await loadQuestion();
+      
+      // 通知父元件刷新
+      onReviewComplete?.();
+    } catch (error) {
+      console.error('標記答對失敗:', error);
+      toast.error('標記答對失敗，請稍後再試');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // 處理答錯
+  const handleWrong = async () => {
+    if (!questionId || submitting) return;
+
+    try {
+      setSubmitting(true);
+      await markAsWrong(questionId);
+      toast.error('❌ 已標記為答錯！錯誤次數 +1');
+      
+      // 重新載入錯題資料
+      await loadQuestion();
+      
+      // 通知父元件刷新
+      onReviewComplete?.();
+    } catch (error) {
+      console.error('標記答錯失敗:', error);
+      toast.error('標記答錯失敗，請稍後再試');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // 載入錯題詳情
+  useEffect(() => {
+    if (open && questionId) {
+      loadQuestion();
+    } else {
+      setQuestion(null);
+      setShowAnswer(false);
+    }
+  }, [open, questionId]);
+
+  // 鍵盤快捷鍵
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // 防止在其他輸入框中觸發
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Space: 切換顯示/隱藏答案
+      if (event.code === 'Space') {
+        event.preventDefault();
+        setShowAnswer(prev => !prev);
+        return;
+      }
+
+      // 只在顯示答案且未在提交中時才能使用方向鍵
+      if (!showAnswer || submitting) return;
+
+      // ArrowLeft: 答錯
+      if (event.code === 'ArrowLeft') {
+        event.preventDefault();
+        handleWrong();
+      }
+      // ArrowRight: 答對
+      else if (event.code === 'ArrowRight') {
+        event.preventDefault();
+        handleCorrect();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, showAnswer, submitting, questionId]);
 
   if (loading) {
     return (
@@ -119,56 +201,6 @@ export function QuestionDetailDialog({
     }
   };
 
-  // 處理答對
-  const handleCorrect = async () => {
-    if (!questionId || submitting) return;
-
-    try {
-      setSubmitting(true);
-      await markAsCorrect(questionId);
-      toast.success('✅ 已標記為答對！錯誤次數 -1');
-      
-      // 重新載入錯題資料
-      await loadQuestion();
-      
-      // 通知父元件刷新
-      onReviewComplete?.();
-      
-      // 可選：關閉對話框
-      // onOpenChange(false);
-    } catch (error) {
-      console.error('標記答對失敗:', error);
-      toast.error('標記答對失敗，請稍後再試');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // 處理答錯
-  const handleWrong = async () => {
-    if (!questionId || submitting) return;
-
-    try {
-      setSubmitting(true);
-      await markAsWrong(questionId);
-      toast.error('❌ 已標記為答錯！錯誤次數 +1');
-      
-      // 重新載入錯題資料
-      await loadQuestion();
-      
-      // 通知父元件刷新
-      onReviewComplete?.();
-      
-      // 可選：關閉對話框
-      // onOpenChange(false);
-    } catch (error) {
-      console.error('標記答錯失敗:', error);
-      toast.error('標記答錯失敗，請稍後再試');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -188,6 +220,16 @@ export function QuestionDetailDialog({
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* 鍵盤快捷鍵提示 */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+            <div className="flex items-center gap-4 justify-center flex-wrap">
+              <span className="font-semibold">⌨️ 鍵盤快捷鍵：</span>
+              <span><kbd className="px-2 py-1 bg-white rounded border border-blue-300">Space</kbd> 顯示/隱藏答案</span>
+              <span><kbd className="px-2 py-1 bg-white rounded border border-blue-300">←</kbd> 答錯</span>
+              <span><kbd className="px-2 py-1 bg-white rounded border border-blue-300">→</kbd> 答對</span>
+            </div>
+          </div>
+
           {/* 資料夾標籤 */}
           {question.folders && question.folders.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -235,12 +277,12 @@ export function QuestionDetailDialog({
               {showAnswer ? (
                 <>
                   <EyeOff className="mr-2 h-5 w-5" />
-                  隱藏答案
+                  隱藏答案 (Space)
                 </>
               ) : (
                 <>
                   <Eye className="mr-2 h-5 w-5" />
-                  顯示答案
+                  顯示答案 (Space)
                 </>
               )}
             </Button>
@@ -312,7 +354,7 @@ export function QuestionDetailDialog({
                 className="flex-1 text-lg py-6"
               >
                 <XCircle className="mr-2 h-5 w-5" />
-                {submitting ? '處理中...' : '❌ 我答錯了'}
+                {submitting ? '處理中...' : '❌ 我答錯了 (←)'}
               </Button>
               <Button
                 variant="default"
@@ -322,7 +364,7 @@ export function QuestionDetailDialog({
                 className="flex-1 text-lg py-6 bg-green-600 hover:bg-green-700"
               >
                 <CheckCircle2 className="mr-2 h-5 w-5" />
-                {submitting ? '處理中...' : '✅ 我答對了'}
+                {submitting ? '處理中...' : '✅ 我答對了 (→)'}
               </Button>
             </DialogFooter>
           )}
