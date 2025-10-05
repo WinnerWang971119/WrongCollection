@@ -16,7 +16,7 @@ import {
   DeleteFolderDialog,
   FolderContent,
 } from '@/components/folders';
-import { NewQuestionDialog } from '@/components/questions';
+import { NewQuestionDialog, ReviewQueue } from '@/components/questions';
 import LogoutButton from './LogoutButton';
 import type { FolderTreeNode } from '@/types/folder.types';
 
@@ -34,6 +34,7 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
   const [isEditFolderOpen, setIsEditFolderOpen] = useState(false);
   const [isDeleteFolderOpen, setIsDeleteFolderOpen] = useState(false);
   const [isNewQuestionOpen, setIsNewQuestionOpen] = useState(false);
+  const [showReviewQueue, setShowReviewQueue] = useState(false);
 
   // 新增子資料夾狀態
   const [parentFolderId, setParentFolderId] = useState<string | null>(null);
@@ -120,7 +121,20 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
 
         {/* 內容區域 */}
         <div className="flex-1 overflow-auto p-6">
-          {selectedFolderId ? (
+          {showReviewQueue ? (
+            // 顯示複習佇列
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-4">
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowReviewQueue(false)}
+                >
+                  ← 返回主頁
+                </Button>
+              </div>
+              <ReviewQueue onStartReview={() => {}} />
+            </div>
+          ) : selectedFolderId ? (
             // 選中資料夾：顯示 Tab 內容
             <FolderContent
               folderId={selectedFolderId}
@@ -172,7 +186,10 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
                 </Card>
 
                 {/* 功能2: 智能複習 */}
-                <Card className="group hover:shadow-2xl transition-all duration-300 border-2 hover:border-purple-400 cursor-pointer">
+                <Card 
+                  className="group hover:shadow-2xl transition-all duration-300 border-2 hover:border-purple-400 cursor-pointer"
+                  onClick={() => setShowReviewQueue(true)}
+                >
                   <CardContent className="p-8">
                     <div className="flex items-start gap-6">
                       <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl p-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">

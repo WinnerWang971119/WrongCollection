@@ -15,10 +15,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Star, Eye, EyeOff, Calendar, FolderOpen, CheckCircle2, XCircle } from 'lucide-react';
+import { Star, Eye, EyeOff, Calendar, FolderOpen, CheckCircle2, XCircle, RotateCcw, Frown, Meh, Smile, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { getQuestionById, markAsCorrect, markAsWrong } from '@/lib/api/question.api';
+import { getQuestionById, markAsCorrect, markAsWrong, submitReviewQuality } from '@/lib/api/question.api';
 import { getImagePublicUrl } from '@/lib/supabase/storage';
+import { ReviewQuality, getQualityLabel, getQualityColor } from '@/lib/algorithms/sm2';
 import type { QuestionWithFolders } from '@/types/question.types';
 
 interface QuestionDetailDialogProps {
@@ -54,14 +55,34 @@ export function QuestionDetailDialog({
     }
   };
 
-  // 處理答對
-  const handleCorrect = async () => {
+  // 處理品質評分（SM-2 演算法）
+  const handleQualityRating = async (quality: ReviewQuality) => {
     if (!questionId || submitting) return;
+
+    const qualityLabels = {
+      [ReviewQuality.AGAIN]: '再來一次',
+      [ReviewQuality.HARD]: '困難',
+      [ReviewQuality.GOOD]: '良好',
+      [ReviewQuality.EASY]: '簡單',
+    };
 
     try {
       setSubmitting(true);
-      await markAsCorrect(questionId);
-      toast.success('✅ 已標記為答對！錯誤次數 -1');
+      console.log(`📊 提交品質評分: ${qualityLabels[quality]} (${quality})`);
+      
+      const result = await submitReviewQuality(questionId, quality as 1 | 2 | 3 | 4);
+      
+      console.log('✅ SM-2 計算結果:', result.sm2Result);
+      console.log('📅 下次複習日期:', result.sm2Result.nextReviewDate);
+      console.log('📊 統計:', result.stats);
+      
+      // 顯示成功訊息
+      const nextDate = new Date(result.sm2Result.nextReviewDate).toLocaleDateString('zh-CN');
+      toast.success(
+        `✅ 已記錄複習：${qualityLabels[quality]}\n` +
+        `📅 下次複習：${nextDate}\n` +
+        `📈 正確率：${result.stats.accuracy.toFixed(1)}%`
+      );
       
       // 重新載入錯題資料
       await loadQuestion();
@@ -69,33 +90,21 @@ export function QuestionDetailDialog({
       // 通知父元件刷新
       onReviewComplete?.();
     } catch (error) {
-      console.error('標記答對失敗:', error);
-      toast.error('標記答對失敗，請稍後再試');
+      console.error('提交品質評分失敗:', error);
+      toast.error('提交失敗，請稍後再試');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // 處理答錯
-  const handleWrong = async () => {
-    if (!questionId || submitting) return;
+  // 處理答對（保留向下相容）
+  const handleCorrect = async () => {
+    await handleQualityRating(ReviewQuality.GOOD);
+  };
 
-    try {
-      setSubmitting(true);
-      await markAsWrong(questionId);
-      toast.error('❌ 已標記為答錯！錯誤次數 +1');
-      
-      // 重新載入錯題資料
-      await loadQuestion();
-      
-      // 通知父元件刷新
-      onReviewComplete?.();
-    } catch (error) {
-      console.error('標記答錯失敗:', error);
-      toast.error('標記答錯失敗，請稍後再試');
-    } finally {
-      setSubmitting(false);
-    }
+  // 處理答錯（保留向下相容）
+  const handleWrong = async () => {
+    await handleQualityRating(ReviewQuality.AGAIN);
   };
 
   // 載入錯題詳情
@@ -129,15 +138,29 @@ export function QuestionDetailDialog({
       // 只在顯示答案且未在提交中時才能使用方向鍵
       if (!showAnswer || submitting) return;
 
-      // ArrowLeft: 答錯
-      if (event.code === 'ArrowLeft') {
+      // 數字鍵 1-4：品質評分
+      if (event.code === 'Digit1' || event.code === 'Numpad1') {
         event.preventDefault();
-        handleWrong();
+        handleQualityRating(ReviewQuality.AGAIN);
+      } else if (event.code === 'Digit2' || event.code === 'Numpad2') {
+        event.preventDefault();
+        handleQualityRating(ReviewQuality.HARD);
+      } else if (event.code === 'Digit3' || event.code === 'Numpad3') {
+        event.preventDefault();
+        handleQualityRating(ReviewQuality.GOOD);
+      } else if (event.code === 'Digit4' || event.code === 'Numpad4') {
+        event.preventDefault();
+        handleQualityRating(ReviewQuality.EASY);
       }
-      // ArrowRight: 答對
+      // ArrowLeft: 答錯 (映射到 Again)
+      else if (event.code === 'ArrowLeft') {
+        event.preventDefault();
+        handleQualityRating(ReviewQuality.AGAIN);
+      }
+      // ArrowRight: 答對 (映射到 Good)
       else if (event.code === 'ArrowRight') {
         event.preventDefault();
-        handleCorrect();
+        handleQualityRating(ReviewQuality.GOOD);
       }
     };
 
@@ -226,8 +249,9 @@ export function QuestionDetailDialog({
             <div className="flex items-center gap-4 justify-center flex-wrap">
               <span className="font-semibold">⌨️ 鍵盤快捷鍵：</span>
               <span><kbd className="px-2 py-1 bg-white rounded border border-blue-300">Space</kbd> 顯示/隱藏答案</span>
-              <span><kbd className="px-2 py-1 bg-white rounded border border-blue-300">←</kbd> 答錯</span>
-              <span><kbd className="px-2 py-1 bg-white rounded border border-blue-300">→</kbd> 答對</span>
+              <span><kbd className="px-2 py-1 bg-white rounded border border-blue-300">1-4</kbd> 品質評分</span>
+              <span><kbd className="px-2 py-1 bg-white rounded border border-blue-300">←</kbd> 再來一次</span>
+              <span><kbd className="px-2 py-1 bg-white rounded border border-blue-300">→</kbd> 良好</span>
             </div>
           </div>
 
@@ -364,45 +388,118 @@ export function QuestionDetailDialog({
           {/* 統計資訊 */}
           <Card className="bg-gray-50">
             <CardContent className="p-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <Badge variant="destructive">錯誤 {question.wrong_count} 次</Badge>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    {question.review_state === 'new' && '新題目'}
+                    {question.review_state === 'learning' && '學習中'}
+                    {question.review_state === 'review' && '複習中'}
+                    {question.review_state === 'mastered' && '已精通'}
+                  </Badge>
+                </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Calendar className="h-4 w-4" />
-                  <span>最後複習：{formatDate(question.last_reviewed_at)}</span>
+                  <span>複習：{question.total_reviews || 0} 次</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-600">
+                  <span>正確率：{
+                    question.total_reviews > 0
+                      ? ((question.correct_reviews / question.total_reviews) * 100).toFixed(0)
+                      : 0
+                  }%</span>
                 </div>
                 <div className="col-span-2 text-gray-500 text-xs">
-                  創建於 {formatDate(question.created_at)}
+                  最後複習：{formatDate(question.last_reviewed_at)}
+                </div>
+                <div className="col-span-2 text-gray-500 text-xs">
+                  {question.next_review_date && (
+                    <>下次複習：{formatDate(question.next_review_date)}</>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* 手動複習按鈕（只在顯示答案後出現） */}
+          {/* SM-2 品質評分按鈕（只在顯示答案後出現） */}
           {showAnswer && (
-            <DialogFooter className="gap-3">
-              <Button
-                variant="destructive"
-                size="lg"
-                onClick={handleWrong}
-                disabled={submitting}
-                className="flex-1 text-lg py-6"
-              >
-                <XCircle className="mr-2 h-5 w-5" />
-                {submitting ? '處理中...' : '❌ 我答錯了 (←)'}
-              </Button>
-              <Button
-                variant="default"
-                size="lg"
-                onClick={handleCorrect}
-                disabled={submitting}
-                className="flex-1 text-lg py-6 bg-green-600 hover:bg-green-700"
-              >
-                <CheckCircle2 className="mr-2 h-5 w-5" />
-                {submitting ? '處理中...' : '✅ 我答對了 (→)'}
-              </Button>
-            </DialogFooter>
+            <div className="space-y-4">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  📊 請評估這道題的難度
+                </h3>
+                <p className="text-sm text-gray-600">
+                  評分將影響下次複習時間（SM-2 演算法）
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* 1 - Again */}
+                <Button
+                  size="lg"
+                  onClick={() => handleQualityRating(ReviewQuality.AGAIN)}
+                  disabled={submitting}
+                  className="flex-col h-auto py-6 bg-red-50 hover:bg-red-100 text-red-700 border-2 border-red-200 hover:border-red-300"
+                  variant="outline"
+                >
+                  <RotateCcw className="h-8 w-8 mb-2" />
+                  <span className="text-base font-semibold">再來一次</span>
+                  <span className="text-xs mt-1 opacity-75">完全不記得</span>
+                  <kbd className="mt-2 px-2 py-1 bg-white rounded text-xs border border-red-300">1 或 ←</kbd>
+                </Button>
+
+                {/* 2 - Hard */}
+                <Button
+                  size="lg"
+                  onClick={() => handleQualityRating(ReviewQuality.HARD)}
+                  disabled={submitting}
+                  className="flex-col h-auto py-6 bg-orange-50 hover:bg-orange-100 text-orange-700 border-2 border-orange-200 hover:border-orange-300"
+                  variant="outline"
+                >
+                  <Frown className="h-8 w-8 mb-2" />
+                  <span className="text-base font-semibold">困難</span>
+                  <span className="text-xs mt-1 opacity-75">記得但很吃力</span>
+                  <kbd className="mt-2 px-2 py-1 bg-white rounded text-xs border border-orange-300">2</kbd>
+                </Button>
+
+                {/* 3 - Good */}
+                <Button
+                  size="lg"
+                  onClick={() => handleQualityRating(ReviewQuality.GOOD)}
+                  disabled={submitting}
+                  className="flex-col h-auto py-6 bg-green-50 hover:bg-green-100 text-green-700 border-2 border-green-200 hover:border-green-300"
+                  variant="outline"
+                >
+                  <Smile className="h-8 w-8 mb-2" />
+                  <span className="text-base font-semibold">良好</span>
+                  <span className="text-xs mt-1 opacity-75">正常記得</span>
+                  <kbd className="mt-2 px-2 py-1 bg-white rounded text-xs border border-green-300">3 或 →</kbd>
+                </Button>
+
+                {/* 4 - Easy */}
+                <Button
+                  size="lg"
+                  onClick={() => handleQualityRating(ReviewQuality.EASY)}
+                  disabled={submitting}
+                  className="flex-col h-auto py-6 bg-blue-50 hover:bg-blue-100 text-blue-700 border-2 border-blue-200 hover:border-blue-300"
+                  variant="outline"
+                >
+                  <Sparkles className="h-8 w-8 mb-2" />
+                  <span className="text-base font-semibold">簡單</span>
+                  <span className="text-xs mt-1 opacity-75">很輕鬆記得</span>
+                  <kbd className="mt-2 px-2 py-1 bg-white rounded text-xs border border-blue-300">4</kbd>
+                </Button>
+              </div>
+
+              {submitting && (
+                <div className="flex items-center justify-center gap-2 text-blue-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span>計算下次複習時間...</span>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </DialogContent>

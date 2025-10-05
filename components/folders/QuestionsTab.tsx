@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { getQuestions, deleteQuestion } from '@/lib/api/question.api';
-import { QuestionCard, NewQuestionDialog, EditQuestionDialog, QuestionDetailDialog } from '@/components/questions';
+import { QuestionCard, NewQuestionDialog, EditQuestionDialog, QuestionDetailDialog, ReviewQueue } from '@/components/questions';
 import type { QuestionListItem } from '@/types/question.types';
 
 interface QuestionsTabProps {
@@ -27,6 +27,7 @@ export function QuestionsTab({ folderId, folderName, refreshTrigger = 0 }: Quest
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
+  const [showReviewQueue, setShowReviewQueue] = useState(false);
 
   // 載入錯題列表
   const loadQuestions = async () => {
@@ -91,6 +92,21 @@ export function QuestionsTab({ folderId, folderName, refreshTrigger = 0 }: Quest
     );
   }
 
+  // 顯示複習佇列
+  if (showReviewQueue) {
+    return (
+      <div className="space-y-4">
+        <Button
+          variant="ghost"
+          onClick={() => setShowReviewQueue(false)}
+        >
+          ← 返回錯題列表
+        </Button>
+        <ReviewQueue />
+      </div>
+    );
+  }
+
   // 空狀態
   if (questions.length === 0) {
     return (
@@ -110,7 +126,7 @@ export function QuestionsTab({ folderId, folderName, refreshTrigger = 0 }: Quest
               <Button
                 variant="outline"
                 className="border-purple-300 text-purple-600 hover:bg-purple-50"
-                disabled
+                onClick={() => setShowReviewQueue(true)}
               >
                 <Sparkles className="h-4 w-4 mr-2" />
                 智能複習本層
@@ -200,6 +216,7 @@ export function QuestionsTab({ folderId, folderName, refreshTrigger = 0 }: Quest
             <Button
               variant="outline"
               className="border-purple-300 text-purple-600 hover:bg-purple-50"
+              onClick={() => setShowReviewQueue(true)}
             >
               <Sparkles className="h-4 w-4 mr-2" />
               智能複習本層

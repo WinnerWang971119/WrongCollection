@@ -30,6 +30,19 @@ export interface Question {
   wrong_count: number;                // 錯誤次數
   last_reviewed_at: string | null;    // 最後複習時間
   
+  // SM-2 演算法欄位（Phase 2A）
+  easiness_factor: number;            // 難度係數（1.3-2.5+，越高越簡單）
+  repetitions: number;                // 連續答對次數
+  interval: number;                   // 間隔天數
+  review_state: 'new' | 'learning' | 'review' | 'mastered';  // 複習狀態
+  next_review_date: string | null;    // 下次複習日期
+  last_quality: number | null;        // 上次複習品質（1-4）
+  total_reviews: number;              // 總複習次數
+  correct_reviews: number;            // 正確複習次數（品質>=3）
+  average_quality: number;            // 平均複習品質
+  first_reviewed_at: string | null;   // 首次複習時間
+  graduated_at: string | null;        // 畢業時間（精通）
+  
   // 時間戳
   created_at: string;
   updated_at: string;

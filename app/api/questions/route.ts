@@ -164,6 +164,48 @@ export async function GET(request: NextRequest) {
 
     // 解析查詢參數
     const searchParams = request.nextUrl.searchParams;
+    
+    // 檢查是否查詢待複習題目
+    const isDueQuery = searchParams.get('due') === 'true';
+    
+    if (isDueQuery) {
+      // 使用 RPC 函數取得待複習題目
+      const limit = parseInt(searchParams.get('limit') || '50');
+      
+      console.log('📚 呼叫 get_due_questions RPC:', { user_id: user.id, limit });
+      
+      const { data: dueQuestions, error: rpcError } = await supabase
+        .rpc('get_due_questions', {
+          p_user_id: user.id,
+          p_limit: limit
+        });
+
+      if (rpcError) {
+        console.error('❌ RPC Error:', rpcError);
+        console.error('Error details:', {
+          message: rpcError.message,
+          details: rpcError.details,
+          hint: rpcError.hint,
+          code: rpcError.code,
+        });
+        return NextResponse.json<ApiResponse<null>>(
+          { 
+            success: false, 
+            error: `取得待複習題目失敗: ${rpcError.message}`, 
+            error_code: 'FETCH_ERROR' 
+          },
+          { status: 500 }
+        );
+      }
+
+      console.log('✅ 取得待複習題目:', dueQuestions?.length || 0);
+
+      return NextResponse.json<ApiResponse<any>>(
+        { success: true, data: dueQuestions || [] },
+        { status: 200 }
+      );
+    }
+    
     const queryParams = {
       folder_id: searchParams.get('folder_id') || undefined,
       include_subfolders: searchParams.get('include_subfolders') || undefined,
