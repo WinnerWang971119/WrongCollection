@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -59,6 +59,25 @@ export function NewQuestionDialog({
     },
   });
 
+  // 自動同步圖片路徑到表單（重要！）
+  useEffect(() => {
+    const questionImagePaths = questionImages
+      .filter((img) => img.uploaded && img.path)
+      .map((img) => img.path!);
+    
+    console.log('🔄 同步題目圖片路徑到表單:', questionImagePaths);
+    form.setValue('question_images', questionImagePaths);
+  }, [questionImages, form]);
+
+  useEffect(() => {
+    const explanationImagePaths = explanationImages
+      .filter((img) => img.uploaded && img.path)
+      .map((img) => img.path!);
+    
+    console.log('🔄 同步詳解圖片路徑到表單:', explanationImagePaths);
+    form.setValue('explanation_images', explanationImagePaths);
+  }, [explanationImages, form]);
+
   // 步驟驗證邏輯
   const validateStep = async (step: number): Promise<boolean> => {
     let fields: (keyof CreateQuestionInput)[] = [];
@@ -75,7 +94,12 @@ export function NewQuestionDialog({
         break;
     }
 
+    // 表單驗證
     const result = await form.trigger(fields);
+    
+    console.log(`✅ Step ${step} 驗證結果:`, result);
+    console.log(`📋 表單當前值:`, form.getValues());
+    
     return result;
   };
 
@@ -97,22 +121,28 @@ export function NewQuestionDialog({
     try {
       setIsSubmitting(true);
 
-      // 將已上傳圖片的路徑加入表單數據
-      const questionImagePaths = questionImages
-        .filter((img) => img.uploaded && img.path)
-        .map((img) => img.path!);
+      // Debug: 顯示提交的完整資料
+      console.log('📸 提交資料:', {
+        title: data.title,
+        question_images: data.question_images,
+        explanation_images: data.explanation_images,
+        questionImagesState: questionImages,
+        explanationImagesState: explanationImages,
+      });
 
-      const explanationImagePaths = explanationImages
-        .filter((img) => img.uploaded && img.path)
-        .map((img) => img.path!);
+      // 檢查是否有圖片正在上傳
+      const hasUploadingImages = questionImages.some(img => img.uploading) || 
+                                 explanationImages.some(img => img.uploading);
+      
+      if (hasUploadingImages) {
+        toast.error('請等待圖片上傳完成');
+        setIsSubmitting(false);
+        return;
+      }
 
-      const submitData: CreateQuestionInput = {
-        ...data,
-        question_images: questionImagePaths,
-        explanation_images: explanationImagePaths,
-      };
-
-      await createQuestion(submitData);
+      // 表單資料已經包含圖片路徑（由 useEffect 自動同步）
+      await createQuestion(data);
+      
       toast.success('✅ 錯題新增成功！');
       onOpenChange(false);
       form.reset();
@@ -121,7 +151,7 @@ export function NewQuestionDialog({
       setExplanationImages([]);
       onSuccess?.();
     } catch (error) {
-      console.error('新增錯題失敗:', error);
+      console.error('❌ 新增錯題失敗:', error);
       toast.error('❌ 新增失敗：' + (error instanceof Error ? error.message : '未知錯誤'));
     } finally {
       setIsSubmitting(false);

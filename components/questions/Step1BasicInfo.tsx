@@ -65,9 +65,22 @@ export function Step1BasicInfo({
           images={questionImages}
           onImagesChange={onQuestionImagesChange}
           maxImages={2}
+          imageType="question"
           label="點擊或拖曳上傳題目圖片"
-          helperText="支援 JPG, PNG, WEBP, HEIC 格式，圖片會自動壓縮至 1MB"
+          helperText="支援 JPG, PNG, WEBP, HEIC 格式，圖片會自動壓縮並上傳"
         />
+        {/* 顯示已上傳圖片數量 */}
+        {questionImages.filter(img => img.uploaded).length > 0 && (
+          <p className="text-xs text-green-600">
+            ✓ 已成功上傳 {questionImages.filter(img => img.uploaded).length} 張圖片
+          </p>
+        )}
+        {/* 顯示上傳中 */}
+        {questionImages.some(img => img.uploading) && (
+          <p className="text-xs text-blue-600 flex items-center gap-2">
+            <span className="animate-spin">⏳</span> 上傳中...
+          </p>
+        )}
       </div>
 
       {/* 題目文字 */}
@@ -97,7 +110,7 @@ export function Step1BasicInfo({
       />
 
       {/* 提示：至少填一項 */}
-      {errors.question_text && (
+      {errors.question_text && !questionImages.some(img => img.uploaded) && (
         <div className="bg-orange-50 border border-orange-200 rounded-md p-3 text-sm text-orange-700">
           ⚠️ 題目照片或題目內容至少需要填寫一項
         </div>

@@ -5,12 +5,13 @@
 
 'use client';
 
-import { useState, useRef, DragEvent } from 'react';
+import { useState, useRef, DragEvent, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, Upload, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { validateImageFile } from '@/lib/supabase/storage';
+import { uploadQuestionImage } from '@/lib/api/image.api';
 
 export interface ImageFile {
   id: string;
@@ -27,6 +28,7 @@ interface MultiImageUploadProps {
   maxImages?: number;
   label?: string;
   helperText?: string;
+  imageType?: 'question' | 'explanation'; // 新增：圖片類型
 }
 
 export function MultiImageUpload({
@@ -35,9 +37,62 @@ export function MultiImageUpload({
   maxImages = 2,
   label = '圖片上傳',
   helperText = '支援 JPG、PNG、WEBP 格式，單檔最大 5MB',
+  imageType = 'question',
 }: MultiImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 自動上傳新選擇的圖片
+  useEffect(() => {
+    const uploadPendingImages = async () => {
+      const pendingImages = images.filter(img => !img.uploading && !img.uploaded && !img.path);
+      
+      if (pendingImages.length === 0) return;
+
+      console.log(`🚀 開始上傳 ${pendingImages.length} 張圖片...`);
+
+      for (const imageFile of pendingImages) {
+        const index = images.findIndex(img => img.id === imageFile.id);
+        
+        try {
+          // 設置上傳中狀態
+          const updatedImages = [...images];
+          updatedImages[index] = { ...imageFile, uploading: true };
+          onImagesChange(updatedImages);
+
+          console.log(`📤 上傳圖片 ${index + 1}/${pendingImages.length}:`, imageFile.file.name);
+
+          // 呼叫上傳 API
+          const result = await uploadQuestionImage(imageFile.file, imageType, index);
+
+          console.log(`✅ 上傳成功:`, result);
+
+          // 更新為上傳成功狀態
+          const successImages = [...images];
+          successImages[index] = {
+            ...imageFile,
+            uploading: false,
+            uploaded: true,
+            path: result.path,
+          };
+          onImagesChange(successImages);
+
+          toast.success(`圖片 ${index + 1} 上傳成功`);
+        } catch (error) {
+          console.error(`❌ 上傳失敗:`, error);
+
+          // 更新為上傳失敗狀態
+          const failedImages = [...images];
+          failedImages[index] = { ...imageFile, uploading: false, uploaded: false };
+          onImagesChange(failedImages);
+
+          toast.error(`圖片 ${index + 1} 上傳失敗：${error instanceof Error ? error.message : '未知錯誤'}`);
+        }
+      }
+    };
+
+    uploadPendingImages();
+  }, [images, imageType, onImagesChange]);
 
   // 處理檔案選擇
   const handleFileSelect = async (files: FileList | null) => {

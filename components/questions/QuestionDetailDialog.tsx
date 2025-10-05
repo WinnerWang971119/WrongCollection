@@ -18,6 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Star, Eye, EyeOff, Calendar, FolderOpen, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getQuestionById, markAsCorrect, markAsWrong } from '@/lib/api/question.api';
+import { getImagePublicUrl } from '@/lib/supabase/storage';
 import type { QuestionWithFolders } from '@/types/question.types';
 
 interface QuestionDetailDialogProps {
@@ -250,19 +251,22 @@ export function QuestionDetailDialog({
               {/* 題目圖片（多張圖片網格顯示） */}
               {question.question_images && question.question_images.length > 0 && (
                 <div className="mb-4 grid grid-cols-2 gap-3">
-                  {question.question_images.map((imageUrl, index) => (
-                    <div key={index} className="relative">
-                      <img
-                        src={imageUrl}
-                        alt={`題目圖片 ${index + 1}`}
-                        className="w-full h-auto rounded-lg border border-blue-200 hover:border-blue-400 transition-colors cursor-pointer"
-                        onClick={() => window.open(imageUrl, '_blank')}
-                      />
-                      <span className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                        {index + 1}/{question.question_images.length}
-                      </span>
-                    </div>
-                  ))}
+                  {question.question_images.map((imagePath, index) => {
+                    const imageUrl = getImagePublicUrl(imagePath);
+                    return (
+                      <div key={index} className="relative">
+                        <img
+                          src={imageUrl}
+                          alt={`題目圖片 ${index + 1}`}
+                          className="w-full h-auto rounded-lg border border-blue-200 hover:border-blue-400 transition-colors cursor-pointer"
+                          onClick={() => window.open(imageUrl, '_blank')}
+                        />
+                        <span className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                          {index + 1}/{question.question_images.length}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -328,19 +332,22 @@ export function QuestionDetailDialog({
                     {/* 詳解圖片（多張圖片網格顯示） */}
                     {question.explanation_images && question.explanation_images.length > 0 && (
                       <div className="mb-4 grid grid-cols-2 gap-3">
-                        {question.explanation_images.map((imageUrl, index) => (
-                          <div key={index} className="relative">
-                            <img
-                              src={imageUrl}
-                              alt={`詳解圖片 ${index + 1}`}
-                              className="w-full h-auto rounded-lg border border-purple-200 hover:border-purple-400 transition-colors cursor-pointer"
-                              onClick={() => window.open(imageUrl, '_blank')}
-                            />
-                            <span className="absolute top-2 right-2 bg-purple-600 text-white text-xs px-2 py-1 rounded">
-                              {index + 1}/{question.explanation_images.length}
-                            </span>
-                          </div>
-                        ))}
+                        {question.explanation_images.map((imagePath, index) => {
+                          const imageUrl = getImagePublicUrl(imagePath);
+                          return (
+                            <div key={index} className="relative">
+                              <img
+                                src={imageUrl}
+                                alt={`詳解圖片 ${index + 1}`}
+                                className="w-full h-auto rounded-lg border border-purple-200 hover:border-purple-400 transition-colors cursor-pointer"
+                                onClick={() => window.open(imageUrl, '_blank')}
+                              />
+                              <span className="absolute top-2 right-2 bg-purple-600 text-white text-xs px-2 py-1 rounded">
+                                {index + 1}/{question.explanation_images.length}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 

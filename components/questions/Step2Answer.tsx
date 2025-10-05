@@ -110,9 +110,22 @@ export function Step2Answer({
           images={explanationImages}
           onImagesChange={onExplanationImagesChange}
           maxImages={2}
+          imageType="explanation"
           label="點擊或拖曳上傳詳解圖片"
-          helperText="上傳老師的批改或詳細解答圖片"
+          helperText="上傳老師的批改或詳細解答圖片，自動壓縮並上傳"
         />
+        {/* 顯示已上傳圖片數量 */}
+        {explanationImages.filter(img => img.uploaded).length > 0 && (
+          <p className="text-xs text-green-600">
+            ✓ 已成功上傳 {explanationImages.filter(img => img.uploaded).length} 張圖片
+          </p>
+        )}
+        {/* 顯示上傳中 */}
+        {explanationImages.some(img => img.uploading) && (
+          <p className="text-xs text-blue-600 flex items-center gap-2">
+            <span className="animate-spin">⏳</span> 上傳中...
+          </p>
+        )}
       </div>
 
       {/* 難度 */}
