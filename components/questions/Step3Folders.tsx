@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { getFolders } from '@/lib/api/folder.api';
 import type { FolderTreeNode } from '@/types/folder.types';
 import type { CreateQuestionInput } from '@/types/question.types';
-import { ChevronRight, ChevronDown, Folder } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder as FolderIcon } from 'lucide-react';
 
 interface Step3FoldersProps {
   control: Control<CreateQuestionInput>;
@@ -42,6 +42,8 @@ export function Step3Folders({ control, setValue, defaultFolderId }: Step3Folder
         // 如果有預設資料夾，展開其父資料夾路徑
         if (defaultFolderId) {
           expandToFolder(data, defaultFolderId);
+          // 自動選中預設資料夾
+          setValue('folder_ids', [defaultFolderId]);
         }
       } catch (error) {
         console.error('載入資料夾失敗:', error);
@@ -51,7 +53,7 @@ export function Step3Folders({ control, setValue, defaultFolderId }: Step3Folder
     }
 
     loadFolders();
-  }, [defaultFolderId]);
+  }, [defaultFolderId, setValue]);
 
   // 展開到指定資料夾的路徑
   const expandToFolder = (tree: FolderTreeNode[], targetId: string) => {
@@ -137,7 +139,7 @@ export function Step3Folders({ control, setValue, defaultFolderId }: Step3Folder
               htmlFor={folder.id}
               className="flex items-center gap-2 cursor-pointer flex-1 text-sm"
             >
-              <Folder className="h-4 w-4 text-blue-500" />
+              <FolderIcon className="h-4 w-4 text-blue-500" />
               <span className={isChecked ? 'font-medium text-blue-600' : ''}>
                 {folder.name}
               </span>
@@ -181,13 +183,6 @@ export function Step3Folders({ control, setValue, defaultFolderId }: Step3Folder
         control={control}
         name="folder_ids"
         render={({ field }) => {
-          // 如果有預設資料夾且尚未選擇，自動選中
-          useEffect(() => {
-            if (defaultFolderId && (!field.value || field.value.length === 0)) {
-              setValue('folder_ids', [defaultFolderId]);
-            }
-          }, [defaultFolderId, field.value]);
-
           const handleToggle = (folderId: string, checked: boolean) => {
             const currentIds = field.value || [];
             if (checked) {

@@ -31,29 +31,22 @@ export const questionTextSchema = z
   .nullable();
 
 /**
- * 題目照片 URL 驗證（選填）
+ * 題目照片路徑陣列驗證（選填，最多2張）
  */
-export const questionImageSchema = z
-  .string()
-  .trim()
+export const questionImagesSchema = z
+  .array(z.string().min(1, '圖片路徑不可為空'))
+  .max(2, '最多只能上傳 2 張題目圖片')
   .optional()
-  .nullable()
-  .refine(
-    (val) => {
-      // 如果為空字串、null 或 undefined，就通過驗證
-      if (!val || val === '') return true;
-      // 如果有值，就驗證是否為有效的 URL
-      try {
-        new URL(val);
-        return true;
-      } catch {
-        return false;
-      }
-    },
-    {
-      message: '請提供有效的圖片 URL',
-    }
-  );
+  .default([]);
+
+/**
+ * 詳解照片路徑陣列驗證（選填，最多2張）
+ */
+export const explanationImagesSchema = z
+  .array(z.string().min(1, '圖片路徑不可為空'))
+  .max(2, '最多只能上傳 2 張詳解圖片')
+  .optional()
+  .default([]);
 
 /**
  * 我的答案驗證
@@ -99,12 +92,13 @@ export const createQuestionSchema = z
     // 步驟 1：基本資訊
     title: titleSchema,
     question_text: questionTextSchema,
-    question_image_url: questionImageSchema,
+    question_images: questionImagesSchema,
 
     // 步驟 2：答案與詳解
     my_answer: myAnswerSchema,
     correct_answer: correctAnswerSchema,
     explanation: explanationSchema,
+    explanation_images: explanationImagesSchema,
     difficulty: difficultySchema,
 
     // 步驟 3：選擇資料夾
@@ -113,7 +107,7 @@ export const createQuestionSchema = z
   .refine(
     (data) => {
       // 照片或題目文字至少一個必填
-      return data.question_text || data.question_image_url;
+      return data.question_text || (data.question_images && data.question_images.length > 0);
     },
     {
       message: '題目照片或題目文字至少需要填寫一項',
@@ -128,21 +122,22 @@ export const updateQuestionSchema = z
   .object({
     title: titleSchema.optional(),
     question_text: questionTextSchema,
-    question_image_url: questionImageSchema,
+    question_images: questionImagesSchema,
     my_answer: myAnswerSchema.optional(),
     correct_answer: correctAnswerSchema.optional(),
     explanation: explanationSchema,
+    explanation_images: explanationImagesSchema,
     difficulty: difficultySchema.optional(),
     folder_ids: folderIdsSchema.optional(),
   })
   .refine(
     (data) => {
-      // 如果有提供 question_text 或 question_image_url，至少一個要有值
+      // 如果有提供 question_text 或 question_images，至少一個要有值
       const hasQuestionText = data.question_text !== undefined;
-      const hasQuestionImage = data.question_image_url !== undefined;
+      const hasQuestionImages = data.question_images !== undefined;
 
-      if (hasQuestionText || hasQuestionImage) {
-        return data.question_text || data.question_image_url;
+      if (hasQuestionText || hasQuestionImages) {
+        return data.question_text || (data.question_images && data.question_images.length > 0);
       }
       return true; // 如果都沒提供，跳過檢查
     },

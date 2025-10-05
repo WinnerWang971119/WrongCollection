@@ -15,13 +15,20 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { MultiImageUpload, type ImageFile } from '@/components/ui/multi-image-upload';
 import type { CreateQuestionInput } from '@/types/question.types';
 
 interface Step2AnswerProps {
   control: Control<CreateQuestionInput>;
+  explanationImages: ImageFile[];
+  onExplanationImagesChange: (images: ImageFile[]) => void;
 }
 
-export function Step2Answer({ control }: Step2AnswerProps) {
+export function Step2Answer({ 
+  control,
+  explanationImages,
+  onExplanationImagesChange,
+}: Step2AnswerProps) {
   return (
     <div className="space-y-4">
       {/* 我的答案 */}
@@ -93,6 +100,20 @@ export function Step2Answer({ control }: Step2AnswerProps) {
           </FormItem>
         )}
       />
+
+      {/* 詳解圖片上傳 */}
+      <div className="space-y-2">
+        <FormLabel className="flex items-center gap-1">
+          📷 詳解圖片 <span className="text-gray-400">(選填，最多2張)</span>
+        </FormLabel>
+        <MultiImageUpload
+          images={explanationImages}
+          onImagesChange={onExplanationImagesChange}
+          maxImages={2}
+          label="點擊或拖曳上傳詳解圖片"
+          helperText="上傳老師的批改或詳細解答圖片"
+        />
+      </div>
 
       {/* 難度 */}
       <FormField

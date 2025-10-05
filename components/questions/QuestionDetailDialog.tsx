@@ -247,14 +247,22 @@ export function QuestionDetailDialog({
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold text-blue-900 mb-4">📝 題目</h3>
               
-              {/* 題目圖片 */}
-              {question.question_image_url && (
-                <div className="mb-4">
-                  <img
-                    src={question.question_image_url}
-                    alt="題目圖片"
-                    className="max-w-full rounded-lg border border-blue-200"
-                  />
+              {/* 題目圖片（多張圖片網格顯示） */}
+              {question.question_images && question.question_images.length > 0 && (
+                <div className="mb-4 grid grid-cols-2 gap-3">
+                  {question.question_images.map((imageUrl, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={imageUrl}
+                        alt={`題目圖片 ${index + 1}`}
+                        className="w-full h-auto rounded-lg border border-blue-200 hover:border-blue-400 transition-colors cursor-pointer"
+                        onClick={() => window.open(imageUrl, '_blank')}
+                      />
+                      <span className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                        {index + 1}/{question.question_images.length}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -316,6 +324,27 @@ export function QuestionDetailDialog({
                 <Card className="bg-purple-50 border-purple-200">
                   <CardContent className="p-6">
                     <h3 className="text-lg font-semibold text-purple-900 mb-4">💡 詳解</h3>
+                    
+                    {/* 詳解圖片（多張圖片網格顯示） */}
+                    {question.explanation_images && question.explanation_images.length > 0 && (
+                      <div className="mb-4 grid grid-cols-2 gap-3">
+                        {question.explanation_images.map((imageUrl, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={imageUrl}
+                              alt={`詳解圖片 ${index + 1}`}
+                              className="w-full h-auto rounded-lg border border-purple-200 hover:border-purple-400 transition-colors cursor-pointer"
+                              onClick={() => window.open(imageUrl, '_blank')}
+                            />
+                            <span className="absolute top-2 right-2 bg-purple-600 text-white text-xs px-2 py-1 rounded">
+                              {index + 1}/{question.explanation_images.length}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 詳解文字 */}
                     <div className="text-gray-800 whitespace-pre-wrap">
                       {question.explanation}
                     </div>

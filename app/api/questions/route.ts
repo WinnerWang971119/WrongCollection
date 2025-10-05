@@ -14,10 +14,11 @@ import type { Question, QuestionListItem, ApiResponse } from '@/types/question.t
  * Body:
  * - title: string (標題，1-100 字元)
  * - question_text?: string (題目文字，選填)
- * - question_image_url?: string (題目照片 URL，選填)
+ * - question_images?: string[] (題目照片路徑陣列，最多2張，選填)
  * - my_answer: string (我的答案)
  * - correct_answer: string (正確答案)
  * - explanation?: string (詳解，選填)
+ * - explanation_images?: string[] (詳解照片路徑陣列，最多2張，選填)
  * - difficulty: 'easy' | 'medium' | 'hard'
  * - folder_ids: string[] (資料夾 ID 列表，至少一個)
  */
@@ -52,10 +53,11 @@ export async function POST(request: NextRequest) {
     const { 
       title,
       question_text,
-      question_image_url,
+      question_images,
       my_answer,
       correct_answer,
       explanation,
+      explanation_images,
       difficulty,
       folder_ids 
     } = validationResult.data;
@@ -81,10 +83,11 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         title,
         question_text: question_text || null,
-        question_image_url: question_image_url || null,
+        question_images: question_images || [],
         my_answer,
         correct_answer,
         explanation: explanation || null,
+        explanation_images: explanation_images || [],
         difficulty,
       })
       .select()

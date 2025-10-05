@@ -14,14 +14,22 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { MultiImageUpload, type ImageFile } from '@/components/ui/multi-image-upload';
 import type { CreateQuestionInput } from '@/types/question.types';
 
 interface Step1BasicInfoProps {
   control: Control<CreateQuestionInput>;
   errors: FieldErrors<CreateQuestionInput>;
+  questionImages: ImageFile[];
+  onQuestionImagesChange: (images: ImageFile[]) => void;
 }
 
-export function Step1BasicInfo({ control, errors }: Step1BasicInfoProps) {
+export function Step1BasicInfo({ 
+  control, 
+  errors,
+  questionImages,
+  onQuestionImagesChange,
+}: Step1BasicInfoProps) {
   return (
     <div className="space-y-4">
       {/* 標題 */}
@@ -48,30 +56,19 @@ export function Step1BasicInfo({ control, errors }: Step1BasicInfoProps) {
         )}
       />
 
-      {/* 題目照片 URL（暫時使用文字輸入） */}
-      <FormField
-        control={control}
-        name="question_image_url"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="flex items-center gap-1">
-              📷 題目照片 URL <span className="text-gray-400">(選填)</span>
-            </FormLabel>
-            <FormControl>
-              <Input
-                placeholder="https://example.com/image.jpg"
-                {...field}
-                value={field.value || ''}
-                className="bg-white"
-              />
-            </FormControl>
-            <p className="text-xs text-gray-500">
-              💡 支援 JPG, PNG 圖片連結（未來將支援直接上傳）
-            </p>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {/* 題目照片上傳 */}
+      <div className="space-y-2">
+        <FormLabel className="flex items-center gap-1">
+          📷 題目照片 <span className="text-gray-400">(選填，最多2張)</span>
+        </FormLabel>
+        <MultiImageUpload
+          images={questionImages}
+          onImagesChange={onQuestionImagesChange}
+          maxImages={2}
+          label="點擊或拖曳上傳題目圖片"
+          helperText="支援 JPG, PNG, WEBP, HEIC 格式，圖片會自動壓縮至 1MB"
+        />
+      </div>
 
       {/* 題目文字 */}
       <FormField

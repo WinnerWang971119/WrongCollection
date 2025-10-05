@@ -17,12 +17,13 @@ export interface Question {
   // 步驟 1：基本資訊
   title: string;                      // 錯題標題（1-100 字元）
   question_text: string | null;       // 題目文字（選填）
-  question_image_url: string | null;  // 題目照片 URL（選填）
+  question_images: string[];          // 題目照片路徑陣列（最多2張）
   
   // 步驟 2：答案與詳解
   my_answer: string;                  // 我的答案
   correct_answer: string;             // 正確答案
   explanation: string | null;         // 詳解（選填）
+  explanation_images: string[];       // 詳解照片路徑陣列（最多2張）
   difficulty: Difficulty;             // 難度
   
   // 學習數據
@@ -70,12 +71,13 @@ export interface CreateQuestionInput {
   // 步驟 1：基本資訊
   title: string;                           // 標題（必填，1-100 字元）
   question_text?: string | null;           // 題目文字（選填）
-  question_image_url?: string | null;      // 題目照片 URL（選填）
+  question_images?: string[];              // 題目照片路徑陣列（選填，最多2張）
   
   // 步驟 2：答案與詳解
   my_answer: string;                       // 我的答案（必填）
   correct_answer: string;                  // 正確答案（必填）
   explanation?: string | null;             // 詳解（選填）
+  explanation_images?: string[];           // 詳解照片路徑陣列（選填，最多2張）
   difficulty: Difficulty;                  // 難度（必填）
   
   // 步驟 3：選擇資料夾
@@ -88,10 +90,11 @@ export interface CreateQuestionInput {
 export interface UpdateQuestionInput {
   title?: string;
   question_text?: string;
-  question_image_url?: string;
+  question_images?: string[];
   my_answer?: string;
   correct_answer?: string;
   explanation?: string;
+  explanation_images?: string[];
   difficulty?: Difficulty;
   folder_ids?: string[];              // 更新資料夾關聯
 }

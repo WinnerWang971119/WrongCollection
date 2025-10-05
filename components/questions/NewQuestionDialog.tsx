@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { createQuestion } from '@/lib/api/question.api';
 import { createQuestionSchema } from '@/lib/validations/question.validation';
 import type { CreateQuestionInput } from '@/types/question.types';
+import type { ImageFile } from '@/components/ui/multi-image-upload';
 import { Step1BasicInfo } from './Step1BasicInfo';
 import { Step2Answer } from './Step2Answer';
 import { Step3Folders } from './Step3Folders';
@@ -40,16 +41,19 @@ export function NewQuestionDialog({
 }: NewQuestionDialogProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [questionImages, setQuestionImages] = useState<ImageFile[]>([]);
+  const [explanationImages, setExplanationImages] = useState<ImageFile[]>([]);
 
   const form = useForm<CreateQuestionInput>({
     resolver: zodResolver(createQuestionSchema),
     defaultValues: {
       title: '',
-      question_image_url: '',
+      question_images: [],
       question_text: '',
       my_answer: '',
       correct_answer: '',
       explanation: '',
+      explanation_images: [],
       difficulty: 'medium',
       folder_ids: defaultFolderId ? [defaultFolderId] : [],
     },
@@ -61,10 +65,10 @@ export function NewQuestionDialog({
 
     switch (step) {
       case 1:
-        fields = ['title', 'question_image_url', 'question_text'];
+        fields = ['title', 'question_images', 'question_text'];
         break;
       case 2:
-        fields = ['my_answer', 'correct_answer', 'explanation', 'difficulty'];
+        fields = ['my_answer', 'correct_answer', 'explanation', 'explanation_images', 'difficulty'];
         break;
       case 3:
         fields = ['folder_ids'];
@@ -92,11 +96,29 @@ export function NewQuestionDialog({
   const onSubmit = async (data: CreateQuestionInput) => {
     try {
       setIsSubmitting(true);
-      await createQuestion(data);
+
+      // 將已上傳圖片的路徑加入表單數據
+      const questionImagePaths = questionImages
+        .filter((img) => img.uploaded && img.path)
+        .map((img) => img.path!);
+
+      const explanationImagePaths = explanationImages
+        .filter((img) => img.uploaded && img.path)
+        .map((img) => img.path!);
+
+      const submitData: CreateQuestionInput = {
+        ...data,
+        question_images: questionImagePaths,
+        explanation_images: explanationImagePaths,
+      };
+
+      await createQuestion(submitData);
       toast.success('✅ 錯題新增成功！');
       onOpenChange(false);
       form.reset();
       setCurrentStep(1);
+      setQuestionImages([]);
+      setExplanationImages([]);
       onSuccess?.();
     } catch (error) {
       console.error('新增錯題失敗:', error);
@@ -111,6 +133,8 @@ export function NewQuestionDialog({
     if (!open) {
       form.reset();
       setCurrentStep(1);
+      setQuestionImages([]);
+      setExplanationImages([]);
     }
     onOpenChange(open);
   };
@@ -180,9 +204,20 @@ export function NewQuestionDialog({
             {/* 步驟內容 */}
             <div className="min-h-[300px]">
               {currentStep === 1 && (
-                <Step1BasicInfo control={form.control} errors={form.formState.errors} />
+                <Step1BasicInfo 
+                  control={form.control} 
+                  errors={form.formState.errors}
+                  questionImages={questionImages}
+                  onQuestionImagesChange={setQuestionImages}
+                />
               )}
-              {currentStep === 2 && <Step2Answer control={form.control} />}
+              {currentStep === 2 && (
+                <Step2Answer 
+                  control={form.control}
+                  explanationImages={explanationImages}
+                  onExplanationImagesChange={setExplanationImages}
+                />
+              )}
               {currentStep === 3 && (
                 <Step3Folders
                   control={form.control}

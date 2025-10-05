@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { updateQuestionSchema, QUESTION_VALIDATION_MESSAGES } from '@/lib/validations/question.validation';
+import { deleteQuestionImages } from '@/lib/supabase/storage';
 import type { Question, QuestionWithFolders, ApiResponse, QuestionFolder } from '@/types/question.types';
 
 /**
@@ -104,10 +105,11 @@ export async function GET(
  * Body (所有欄位都是選填):
  * - title?: string
  * - question_text?: string
- * - question_image_url?: string
+ * - question_images?: string[]
  * - my_answer?: string
  * - correct_answer?: string
  * - explanation?: string
+ * - explanation_images?: string[]
  * - difficulty?: 'easy' | 'medium' | 'hard'
  * - folder_ids?: string[] (更新資料夾關聯)
  */
@@ -162,10 +164,11 @@ export async function PATCH(
     const {
       title,
       question_text,
-      question_image_url,
+      question_images,
       my_answer,
       correct_answer,
       explanation,
+      explanation_images,
       difficulty,
       folder_ids
     } = validationResult.data;
@@ -175,10 +178,11 @@ export async function PATCH(
     
     if (title !== undefined) updateData.title = title;
     if (question_text !== undefined) updateData.question_text = question_text;
-    if (question_image_url !== undefined) updateData.question_image_url = question_image_url;
+    if (question_images !== undefined) updateData.question_images = question_images;
     if (my_answer !== undefined) updateData.my_answer = my_answer;
     if (correct_answer !== undefined) updateData.correct_answer = correct_answer;
     if (explanation !== undefined) updateData.explanation = explanation;
+    if (explanation_images !== undefined) updateData.explanation_images = explanation_images;
     if (difficulty !== undefined) updateData.difficulty = difficulty;
 
     // 1. 更新錯題
@@ -272,7 +276,7 @@ export async function PATCH(
 
 /**
  * DELETE /api/questions/[id]
- * 刪除錯題（CASCADE 自動刪除 question_folders 關聯）
+ * 刪除錯題（CASCADE 自動刪除 question_folders 關聯 + Storage 圖片清理）
  */
 export async function DELETE(
   request: NextRequest,
@@ -293,10 +297,10 @@ export async function DELETE(
 
     const { id: questionId } = params;
 
-    // 檢查錯題是否存在且屬於該使用者
+    // 檢查錯題是否存在且屬於該使用者，並取得圖片路徑
     const { data: existingQuestion, error: fetchError } = await supabase
       .from('questions')
-      .select('id')
+      .select('id, question_images, explanation_images')
       .eq('id', questionId)
       .eq('user_id', user.id)
       .single();
@@ -307,6 +311,12 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    // 收集所有圖片路徑
+    const allImagePaths = [
+      ...(existingQuestion.question_images || []),
+      ...(existingQuestion.explanation_images || [])
+    ];
 
     // 刪除錯題（CASCADE 會自動刪除 question_folders 關聯）
     const { error: deleteError } = await supabase
@@ -321,6 +331,14 @@ export async function DELETE(
         { success: false, error: '刪除錯題失敗', error_code: 'DELETE_ERROR' },
         { status: 500 }
       );
+    }
+
+    // 刪除 Storage 中的圖片（異步執行，不阻塞回應）
+    if (allImagePaths.length > 0) {
+      deleteQuestionImages(allImagePaths).catch(error => {
+        console.error('Error deleting question images from storage:', error);
+        // 圖片刪除失敗不影響錯題刪除結果
+      });
     }
 
     return NextResponse.json<ApiResponse<{ id: string }>>(
