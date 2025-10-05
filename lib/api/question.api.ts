@@ -131,25 +131,59 @@ export async function deleteQuestion(id: string): Promise<void> {
 }
 
 /**
- * 增加錯誤次數
+ * 標記答錯（錯誤次數 +1）
  */
-export async function incrementWrongCount(id: string): Promise<void> {
-  const question = await getQuestionById(id);
-  await updateQuestion(id, {
-    // 透過更新 last_reviewed_at 來觸發錯誤次數增加
-    // 實際增加邏輯可以在複習模式中實作
+export async function markAsWrong(id: string): Promise<{
+  id: string;
+  wrong_count: number;
+  last_reviewed_at: string;
+}> {
+  const response = await fetch(`${API_BASE_URL}/${id}/review`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ result: 'wrong' }),
   });
+
+  const data: ApiResponse<{
+    id: string;
+    wrong_count: number;
+    last_reviewed_at: string;
+  }> = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.error || '標記答錯失敗');
+  }
+
+  return data.data!;
 }
 
 /**
- * 標記為已掌握（減少錯誤次數）
+ * 標記答對（錯誤次數 -1，最低 0）
  */
-export async function markAsMastered(id: string): Promise<void> {
-  const question = await getQuestionById(id);
-  const newCount = Math.max((question.wrong_count || 1) - 1, 0);
-  
-  await updateQuestion(id, {
-    // 更新錯誤次數和複習時間
-    // 注意：實際應該使用 RPC 函數，這裡先用簡單方式實作
+export async function markAsCorrect(id: string): Promise<{
+  id: string;
+  wrong_count: number;
+  last_reviewed_at: string;
+}> {
+  const response = await fetch(`${API_BASE_URL}/${id}/review`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ result: 'correct' }),
   });
+
+  const data: ApiResponse<{
+    id: string;
+    wrong_count: number;
+    last_reviewed_at: string;
+  }> = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.error || '標記答對失敗');
+  }
+
+  return data.data!;
 }

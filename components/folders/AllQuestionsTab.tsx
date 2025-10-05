@@ -260,6 +260,7 @@ export function AllQuestionsTab({ folderId, folderName, refreshTrigger = 0 }: Al
         open={showDetailDialog}
         onOpenChange={setShowDetailDialog}
         questionId={selectedQuestionId}
+        onReviewComplete={loadQuestions}
       />
     </div>
   );

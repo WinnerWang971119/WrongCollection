@@ -235,6 +235,7 @@ export function QuestionsTab({ folderId, folderName, refreshTrigger = 0 }: Quest
         open={showDetailDialog}
         onOpenChange={setShowDetailDialog}
         questionId={selectedQuestionId}
+        onReviewComplete={loadQuestions}
       />
     </>
   );

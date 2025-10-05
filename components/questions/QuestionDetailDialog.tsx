@@ -10,28 +10,33 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Star, Eye, EyeOff, Calendar, FolderOpen } from 'lucide-react';
-import { getQuestionById } from '@/lib/api/question.api';
+import { Star, Eye, EyeOff, Calendar, FolderOpen, CheckCircle2, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { getQuestionById, markAsCorrect, markAsWrong } from '@/lib/api/question.api';
 import type { QuestionWithFolders } from '@/types/question.types';
 
 interface QuestionDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   questionId: string | null;
+  onReviewComplete?: () => void; // 複習完成後的回調
 }
 
 export function QuestionDetailDialog({
   open,
   onOpenChange,
   questionId,
+  onReviewComplete,
 }: QuestionDetailDialogProps) {
   const [question, setQuestion] = useState<QuestionWithFolders | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // 載入錯題詳情
   useEffect(() => {
@@ -111,6 +116,56 @@ export function QuestionDetailDialog({
       });
     } catch {
       return '時間格式錯誤';
+    }
+  };
+
+  // 處理答對
+  const handleCorrect = async () => {
+    if (!questionId || submitting) return;
+
+    try {
+      setSubmitting(true);
+      await markAsCorrect(questionId);
+      toast.success('✅ 已標記為答對！錯誤次數 -1');
+      
+      // 重新載入錯題資料
+      await loadQuestion();
+      
+      // 通知父元件刷新
+      onReviewComplete?.();
+      
+      // 可選：關閉對話框
+      // onOpenChange(false);
+    } catch (error) {
+      console.error('標記答對失敗:', error);
+      toast.error('標記答對失敗，請稍後再試');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // 處理答錯
+  const handleWrong = async () => {
+    if (!questionId || submitting) return;
+
+    try {
+      setSubmitting(true);
+      await markAsWrong(questionId);
+      toast.error('❌ 已標記為答錯！錯誤次數 +1');
+      
+      // 重新載入錯題資料
+      await loadQuestion();
+      
+      // 通知父元件刷新
+      onReviewComplete?.();
+      
+      // 可選：關閉對話框
+      // onOpenChange(false);
+    } catch (error) {
+      console.error('標記答錯失敗:', error);
+      toast.error('標記答錯失敗，請稍後再試');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -245,6 +300,32 @@ export function QuestionDetailDialog({
               </div>
             </CardContent>
           </Card>
+
+          {/* 手動複習按鈕（只在顯示答案後出現） */}
+          {showAnswer && (
+            <DialogFooter className="gap-3">
+              <Button
+                variant="destructive"
+                size="lg"
+                onClick={handleWrong}
+                disabled={submitting}
+                className="flex-1 text-lg py-6"
+              >
+                <XCircle className="mr-2 h-5 w-5" />
+                {submitting ? '處理中...' : '❌ 我答錯了'}
+              </Button>
+              <Button
+                variant="default"
+                size="lg"
+                onClick={handleCorrect}
+                disabled={submitting}
+                className="flex-1 text-lg py-6 bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle2 className="mr-2 h-5 w-5" />
+                {submitting ? '處理中...' : '✅ 我答對了'}
+              </Button>
+            </DialogFooter>
+          )}
         </div>
       </DialogContent>
     </Dialog>
