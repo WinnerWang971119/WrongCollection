@@ -5,6 +5,7 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Folder, ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import type { FolderTreeNode } from '@/types/folder.types';
 import { FOLDER_COLORS } from '@/lib/constants/folder.constants';
 import { cn } from '@/lib/utils';
+import { getQuestions } from '@/lib/api/question.api';
 
 interface SubfoldersTabProps {
   subfolders: FolderTreeNode[];
@@ -26,6 +28,36 @@ export function SubfoldersTab({
   onAddSubfolder,
   canAddSubfolder,
 }: SubfoldersTabProps) {
+  const [questionCounts, setQuestionCounts] = useState<Record<string, number>>({});
+
+  // 載入每個子資料夾的題數
+  useEffect(() => {
+    async function loadQuestionCounts() {
+      const counts: Record<string, number> = {};
+      
+      // 對每個子資料夾查詢題數（包含其子資料夾）
+      await Promise.all(
+        subfolders.map(async (folder) => {
+          try {
+            const questions = await getQuestions({
+              folder_id: folder.id,
+              include_subfolders: true,
+            });
+            counts[folder.id] = questions.length;
+          } catch (error) {
+            console.error(`載入資料夾 ${folder.name} 的題數失敗:`, error);
+            counts[folder.id] = 0;
+          }
+        })
+      );
+      
+      setQuestionCounts(counts);
+    }
+
+    if (subfolders.length > 0) {
+      loadQuestionCounts();
+    }
+  }, [subfolders]);
   // 根據層級選擇顏色
   const getLevelColor = (level: number) => {
     const colors = [
@@ -120,9 +152,13 @@ export function SubfoldersTab({
                     </Badge>
                   </div>
 
-                  {/* 統計資訊（目前顯示 0，等 Phase 1D 實作） */}
+                  {/* 統計資訊 */}
                   <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                    <span>0 題</span>
+                    <span>
+                      {questionCounts[folder.id] !== undefined
+                        ? `${questionCounts[folder.id]} 題`
+                        : '載入中...'}
+                    </span>
                     {folder.children && folder.children.length > 0 && (
                       <span>{folder.children.length} 個子資料夾</span>
                     )}

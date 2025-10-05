@@ -238,9 +238,9 @@ export function AllQuestionsTab({ folderId, folderName, refreshTrigger = 0 }: Al
 
       {/* 錯題列表 - 網格布局 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {questions.map((question) => (
+        {questions.map((question, index) => (
           <QuestionCard
-            key={question.id}
+            key={question?.id || `question-${index}`}
             question={question}
             onClick={() => {
               setSelectedQuestionId(question.id);
