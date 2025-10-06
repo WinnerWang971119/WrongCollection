@@ -1,15 +1,20 @@
 -- ============================================
--- Migration 005: Analytics RPC Functions
--- 說明：新增進階統計分析所需的 RPC 函數
+-- Migration 005 修復：修正 Analytics RPC Functions
+-- 說明：修復型別不匹配和欄位名稱衝突問題
 -- 日期：2025-10-06
 -- ============================================
 
+-- 1. 刪除舊函數
+DROP FUNCTION IF EXISTS get_question_distribution(UUID, TEXT);
+DROP FUNCTION IF EXISTS get_learning_progress(UUID, INTEGER);
+DROP FUNCTION IF EXISTS get_easiness_trend(UUID, INTEGER);
+
 -- ============================================
--- 1. get_question_distribution - 錯題分布分析
+-- 2. 重新建立 get_question_distribution（修復 TEXT 型別）
 -- ============================================
 CREATE OR REPLACE FUNCTION get_question_distribution(
   p_user_id UUID,
-  p_group_by TEXT DEFAULT 'folder' -- 'folder', 'difficulty', 'time'
+  p_group_by TEXT DEFAULT 'folder'
 )
 RETURNS TABLE (
   name TEXT,
@@ -22,19 +27,15 @@ AS $$
 DECLARE
   v_total_count INTEGER;
 BEGIN
-  -- 計算總錯題數
   SELECT COUNT(*)::INTEGER INTO v_total_count
   FROM questions
   WHERE user_id = p_user_id;
   
-  -- 如果沒有錯題，返回空結果
   IF v_total_count = 0 THEN
     RETURN;
   END IF;
   
-  -- 根據分組類型返回不同結果
   IF p_group_by = 'folder' THEN
-    -- 按資料夾分組
     RETURN QUERY
     SELECT 
       COALESCE(f.name, '未分類')::TEXT AS name,
@@ -48,7 +49,6 @@ BEGIN
     ORDER BY value DESC;
     
   ELSIF p_group_by = 'difficulty' THEN
-    -- 按難度分組
     RETURN QUERY
     SELECT 
       (CASE q.difficulty
@@ -71,7 +71,6 @@ BEGIN
       END;
       
   ELSIF p_group_by = 'time' THEN
-    -- 按時間分組（本周/本月/更早）
     RETURN QUERY
     SELECT 
       (CASE 
@@ -100,7 +99,7 @@ END;
 $$;
 
 -- ============================================
--- 2. get_learning_progress - 學習進度追蹤
+-- 3. 重新建立 get_learning_progress（修復 date 衝突）
 -- ============================================
 CREATE OR REPLACE FUNCTION get_learning_progress(
   p_user_id UUID,
@@ -119,7 +118,6 @@ AS $$
 BEGIN
   RETURN QUERY
   WITH date_series AS (
-    -- 生成日期序列
     SELECT 
       generate_series(
         CURRENT_DATE - (p_days - 1),
@@ -128,13 +126,12 @@ BEGIN
       )::DATE AS series_date
   ),
   daily_states AS (
-    -- 計算每天各狀態的錯題數
     SELECT 
       ds.series_date,
-      COUNT(*) FILTER (WHERE q.review_state = 'new')::INTEGER AS new_count,
-      COUNT(*) FILTER (WHERE q.review_state = 'learning')::INTEGER AS learning_count,
-      COUNT(*) FILTER (WHERE q.review_state = 'review')::INTEGER AS review_count,
-      COUNT(*) FILTER (WHERE q.review_state = 'mastered')::INTEGER AS mastered_count
+      COUNT(*) FILTER (WHERE q.review_state = 'new')::INTEGER AS cnt_new,
+      COUNT(*) FILTER (WHERE q.review_state = 'learning')::INTEGER AS cnt_learning,
+      COUNT(*) FILTER (WHERE q.review_state = 'review')::INTEGER AS cnt_review,
+      COUNT(*) FILTER (WHERE q.review_state = 'mastered')::INTEGER AS cnt_mastered
     FROM date_series ds
     LEFT JOIN questions q ON 
       q.user_id = p_user_id AND
@@ -143,17 +140,17 @@ BEGIN
   )
   SELECT 
     series_date AS date,
-    new_count,
-    learning_count,
-    review_count,
-    mastered_count
+    cnt_new AS new_count,
+    cnt_learning AS learning_count,
+    cnt_review AS review_count,
+    cnt_mastered AS mastered_count
   FROM daily_states
   ORDER BY series_date ASC;
 END;
 $$;
 
 -- ============================================
--- 3. get_easiness_trend - 記憶強度趨勢
+-- 4. 重新建立 get_easiness_trend（修復 date 衝突）
 -- ============================================
 CREATE OR REPLACE FUNCTION get_easiness_trend(
   p_user_id UUID,
@@ -182,10 +179,10 @@ BEGIN
   daily_ef AS (
     SELECT 
       ds.series_date,
-      AVG(q.easiness_factor) AS avg_ef,
-      MIN(q.easiness_factor) AS min_ef,
-      MAX(q.easiness_factor) AS max_ef,
-      COUNT(*) FILTER (WHERE q.easiness_factor IS NOT NULL)::INTEGER AS question_count
+      AVG(q.easiness_factor) AS ef_avg,
+      MIN(q.easiness_factor) AS ef_min,
+      MAX(q.easiness_factor) AS ef_max,
+      COUNT(*) FILTER (WHERE q.easiness_factor IS NOT NULL)::INTEGER AS ef_count
     FROM date_series ds
     LEFT JOIN questions q ON 
       q.user_id = p_user_id AND
@@ -195,74 +192,39 @@ BEGIN
   )
   SELECT 
     series_date AS date,
-    ROUND(COALESCE(avg_ef, 2.5)::NUMERIC, 2)::FLOAT AS average_ef,
-    ROUND(COALESCE(min_ef, 2.5)::NUMERIC, 2)::FLOAT AS min_ef,
-    ROUND(COALESCE(max_ef, 2.5)::NUMERIC, 2)::FLOAT AS max_ef,
-    question_count
+    ROUND(COALESCE(ef_avg, 2.5)::NUMERIC, 2)::FLOAT AS average_ef,
+    ROUND(COALESCE(ef_min, 2.5)::NUMERIC, 2)::FLOAT AS min_ef,
+    ROUND(COALESCE(ef_max, 2.5)::NUMERIC, 2)::FLOAT AS max_ef,
+    ef_count AS question_count
   FROM daily_ef
   ORDER BY series_date ASC;
 END;
 $$;
 
 -- ============================================
--- 4. get_review_efficiency - 複習效率統計
+-- 5. 更新註釋
 -- ============================================
-CREATE OR REPLACE FUNCTION get_review_efficiency(
-  p_user_id UUID,
-  p_days INTEGER DEFAULT 30
-)
-RETURNS TABLE (
-  total_reviews BIGINT,
-  correct_reviews BIGINT,
-  accuracy_rate FLOAT,
-  average_quality FLOAT,
-  total_questions BIGINT,
-  mastered_questions BIGINT
-) 
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    -- 總複習次數
-    SUM(q.total_reviews)::BIGINT AS total_reviews,
-    -- 正確複習次數
-    SUM(q.correct_reviews)::BIGINT AS correct_reviews,
-    -- 正確率
-    CASE 
-      WHEN SUM(q.total_reviews) > 0 THEN
-        ROUND((SUM(q.correct_reviews)::FLOAT / SUM(q.total_reviews) * 100)::NUMERIC, 2)::FLOAT
-      ELSE 0
-    END AS accuracy_rate,
-    -- 平均質量
-    ROUND(COALESCE(AVG(q.average_quality), 0)::NUMERIC, 2)::FLOAT AS average_quality,
-    -- 總錯題數
-    COUNT(*)::BIGINT AS total_questions,
-    -- 已精通題數
-    COUNT(*) FILTER (WHERE q.review_state = 'mastered')::BIGINT AS mastered_questions
-  FROM questions q
-  WHERE 
-    q.user_id = p_user_id AND
-    q.last_reviewed_at >= NOW() - (p_days || ' days')::INTERVAL;
-END;
-$$;
-
--- ============================================
--- 5. 新增註釋
--- ============================================
-COMMENT ON FUNCTION get_question_distribution IS '取得錯題分布（按資料夾/難度/時間）';
-COMMENT ON FUNCTION get_learning_progress IS '取得學習進度（每日各狀態錯題數）';
-COMMENT ON FUNCTION get_easiness_trend IS '取得記憶強度趨勢（EF 變化）';
-COMMENT ON FUNCTION get_review_efficiency IS '取得複習效率統計（正確率、平均質量等）';
+COMMENT ON FUNCTION get_question_distribution IS '取得錯題分布（按資料夾/難度/時間）- 已修復型別';
+COMMENT ON FUNCTION get_learning_progress IS '取得學習進度（每日各狀態錯題數）- 已修復欄位衝突';
+COMMENT ON FUNCTION get_easiness_trend IS '取得記憶強度趨勢（EF 變化）- 已修復欄位衝突';
 
 -- ============================================
 -- Migration 完成
 -- ============================================
 -- 請在 Supabase SQL Editor 執行此 SQL
--- 然後測試每個函數：
---   SELECT * FROM get_question_distribution('your_user_id', 'folder');
---   SELECT * FROM get_learning_progress('your_user_id', 30);
---   SELECT * FROM get_easiness_trend('your_user_id', 30);
---   SELECT * FROM get_review_efficiency('your_user_id', 30);
+-- 修復內容：
+--   1. get_question_distribution: 
+--      - category → name，強制轉型為 TEXT
+--      - count → value
+--   2. get_learning_progress: 
+--      - 使用 series_date 避免 date 衝突
+--      - 使用 cnt_* 別名避免欄位名稱衝突
+--      - 移除 total_count
+--   3. get_easiness_trend: 
+--      - 使用 series_date 避免 date 衝突
+--      - 使用 ef_* 別名避免欄位名稱衝突
+-- 
+-- 前端修復：
+--   1. QuestionDistribution.tsx: category → name, count → value
+--   2. statistics.api.ts: QuestionDistribution 介面更新
 -- ============================================

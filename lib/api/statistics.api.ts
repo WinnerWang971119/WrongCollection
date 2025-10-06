@@ -39,8 +39,8 @@ export interface DailyReviewStat {
  * 錯題分布
  */
 export interface QuestionDistribution {
-  category: string;       // 分類名稱
-  count: number;          // 錯題數量
+  name: string;           // 分類名稱
+  value: number;          // 錯題數量
   percentage: number;     // 百分比
 }
 
@@ -87,7 +87,8 @@ export type TimeRange = 7 | 30 | 90 | 'all';
 /**
  * 分組類型
  */
-export type GroupByType = 'folder' | 'difficulty' | 'time';
+// 分組類型（移除了 'time' 分組）
+export type GroupByType = 'folder' | 'difficulty';
 
 // ============================================
 // API 函數
@@ -233,8 +234,8 @@ export async function getLearningProgress(
     throw new Error('未授權');
   }
 
-  // 轉換 'all' 為大數字（365 天）
-  const actualDays = days === 'all' ? 365 : days;
+  // 轉換 'all' 為 null（從註冊日期開始）
+  const actualDays = days === 'all' ? null : days;
 
   console.log('📊 呼叫 get_learning_progress RPC...', { userId: user.id, days: actualDays });
 
@@ -276,8 +277,8 @@ export async function getEasinessTrend(
     throw new Error('未授權');
   }
 
-  // 轉換 'all' 為大數字（365 天）
-  const actualDays = days === 'all' ? 365 : days;
+  // 轉換 'all' 為 null（從註冊日期開始）
+  const actualDays = days === 'all' ? null : days;
 
   console.log('📊 呼叫 get_easiness_trend RPC...', { userId: user.id, days: actualDays });
 
@@ -319,8 +320,8 @@ export async function getReviewEfficiency(
     throw new Error('未授權');
   }
 
-  // 轉換 'all' 為大數字（365 天）
-  const actualDays = days === 'all' ? 365 : days;
+  // 轉換 'all' 為 null（全部時間）
+  const actualDays = days === 'all' ? null : days;
 
   console.log('📊 呼叫 get_review_efficiency RPC...', { userId: user.id, days: actualDays });
 

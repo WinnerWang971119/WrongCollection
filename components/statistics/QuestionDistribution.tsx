@@ -14,13 +14,12 @@ import {
   type GroupByType,
 } from '@/lib/api/statistics.api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { FolderOpen, BarChart3, Clock } from 'lucide-react';
+import { FolderOpen, BarChart3 } from 'lucide-react';
 
-// 顏色方案
+// 顏色方案（移除了 time 分組）
 const COLORS = {
   folder: ['#3b82f6', '#60a5fa', '#93c5fd', '#dbeafe', '#bfdbfe'],
   difficulty: ['#10b981', '#f59e0b', '#ef4444'], // 綠、橙、紅
-  time: ['#3b82f6', '#60a5fa', '#93c5fd'], // 藍色系
 };
 
 export default function QuestionDistribution() {
@@ -54,7 +53,7 @@ export default function QuestionDistribution() {
       return (
         <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
           <p className="text-sm font-semibold text-gray-800">
-            {payload[0].payload.category}
+            {payload[0].payload.name}
           </p>
           <p className="text-sm text-blue-600">
             {payload[0].value} 題 ({payload[0].payload.percentage}%)
@@ -118,7 +117,7 @@ export default function QuestionDistribution() {
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as GroupByType)}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="folder" className="text-xs">
               <FolderOpen className="h-3 w-3 mr-1" />
               資料夾
@@ -126,10 +125,6 @@ export default function QuestionDistribution() {
             <TabsTrigger value="difficulty" className="text-xs">
               <BarChart3 className="h-3 w-3 mr-1" />
               難度
-            </TabsTrigger>
-            <TabsTrigger value="time" className="text-xs">
-              <Clock className="h-3 w-3 mr-1" />
-              時間
             </TabsTrigger>
           </TabsList>
 
@@ -141,10 +136,11 @@ export default function QuestionDistribution() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ category, percentage }) => `${category} ${percentage}%`}
+                  label={({ name, percentage }) => `${name} ${percentage}%`}
                   outerRadius={100}
                   fill="#8884d8"
-                  dataKey="count"
+                  dataKey="value"
+                  nameKey="name"
                 >
                   {data.map((entry, index) => (
                     <Cell
@@ -157,7 +153,7 @@ export default function QuestionDistribution() {
                 <Legend
                   verticalAlign="bottom"
                   height={36}
-                  formatter={(value, entry: any) => `${entry.payload.category}`}
+                  formatter={(value, entry: any) => `${entry.payload.name}`}
                 />
               </PieChart>
             </ResponsiveContainer>
