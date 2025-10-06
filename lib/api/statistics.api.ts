@@ -71,10 +71,12 @@ export async function getReviewStreak(): Promise<ReviewStreak> {
 
   console.log('✅ 取得連續天數成功:', data);
 
-  // 3. 返回資料（確保有預設值）
+  // 3. 返回資料（RPC 返回陣列，取第一個元素）
+  const result = Array.isArray(data) ? data[0] : data;
+  
   return {
-    current_streak: data?.current_streak ?? 0,
-    longest_streak: data?.longest_streak ?? 0,
+    current_streak: result?.current_streak ?? 0,
+    longest_streak: result?.longest_streak ?? 0,
   };
 }
 
