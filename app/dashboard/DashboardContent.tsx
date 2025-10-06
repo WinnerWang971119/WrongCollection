@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, BarChart3 } from 'lucide-react';
 import {
   FolderTree,
   NewFolderDialog,
@@ -17,6 +17,7 @@ import {
   FolderContent,
 } from '@/components/folders';
 import { NewQuestionDialog, ReviewQueue } from '@/components/questions';
+import { DayStreakCounter, DailyTrendChart, AnalyticsDialog } from '@/components/statistics';
 import LogoutButton from './LogoutButton';
 import type { FolderTreeNode } from '@/types/folder.types';
 
@@ -35,6 +36,7 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
   const [isDeleteFolderOpen, setIsDeleteFolderOpen] = useState(false);
   const [isNewQuestionOpen, setIsNewQuestionOpen] = useState(false);
   const [showReviewQueue, setShowReviewQueue] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false); // 新增：學習分析對話框狀態
 
   // 新增子資料夾狀態
   const [parentFolderId, setParentFolderId] = useState<string | null>(null);
@@ -216,71 +218,33 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
                 </Card>
               </div>
 
-              {/* 快速統計 */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-3xl font-bold text-blue-600 mb-1">0</div>
-                    <div className="text-sm text-gray-600">總錯題數</div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-3xl font-bold text-green-600 mb-1">0</div>
-                    <div className="text-sm text-gray-600">已複習</div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-3xl font-bold text-orange-600 mb-1">0</div>
-                    <div className="text-sm text-gray-600">本周新增</div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-3xl font-bold text-purple-600 mb-1">0</div>
-                    <div className="text-sm text-gray-600">資料夾</div>
-                  </CardContent>
-                </Card>
-              </div>
+              {/* 統計元件區域 */}
+              <div className="space-y-6">
+                {/* Grid 布局：DayStreakCounter 在左，DailyTrendChart 在右 */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* DayStreakCounter - 佔 1 列 */}
+                  <div className="lg:col-span-1">
+                    <DayStreakCounter />
+                  </div>
+                  
+                  {/* DailyTrendChart - 佔 2 列 */}
+                  <div className="lg:col-span-2">
+                    <DailyTrendChart />
+                  </div>
+                </div>
 
-              {/* 使用建議 */}
-              <Card className="border-blue-200 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50">
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                    <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    快速開始指南
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">1</div>
-                    <div>
-                      <p className="text-sm text-gray-700">
-                        <span className="font-semibold">建立資料夾：</span>點擊左側「新增」按鈕，建立科目或章節資料夾（最多支援 4 層）
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">2</div>
-                    <div>
-                      <p className="text-sm text-gray-700">
-                        <span className="font-semibold">記錄錯題：</span>選擇資料夾後，點擊「錯題登錄」記錄題目內容和答案
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0">3</div>
-                    <div>
-                      <p className="text-sm text-gray-700">
-                        <span className="font-semibold">定期複習：</span>使用「智能複習」功能，系統會根據您的學習狀況推薦複習題目
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                {/* 學習分析按鈕 */}
+                <div className="flex justify-center pt-4">
+                  <Button
+                    size="lg"
+                    onClick={() => setShowAnalytics(true)}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    <BarChart3 className="mr-2 h-5 w-5" />
+                    查看完整學習分析
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -313,6 +277,11 @@ export default function DashboardContent({ userEmail }: DashboardContentProps) {
         open={isNewQuestionOpen}
         onOpenChange={setIsNewQuestionOpen}
         onSuccess={handleSuccess}
+      />
+
+      <AnalyticsDialog
+        open={showAnalytics}
+        onOpenChange={setShowAnalytics}
       />
     </div>
   );
