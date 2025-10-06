@@ -3,7 +3,15 @@
 // 說明：封裝統計相關的 RPC 函數呼叫
 // ============================================
 
-import { supabase } from '@/lib/supabase/client';
+import { createBrowserClient } from '@supabase/ssr';
+
+// 建立 Supabase 客戶端（Client Component 使用）
+function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 // ============================================
 // 型別定義
@@ -36,6 +44,8 @@ export interface DailyReviewStat {
  * @returns Promise<ReviewStreak>
  */
 export async function getReviewStreak(): Promise<ReviewStreak> {
+  const supabase = createClient();
+
   // 1. 取得當前使用者
   const {
     data: { user },
@@ -74,6 +84,8 @@ export async function getReviewStreak(): Promise<ReviewStreak> {
  * @returns Promise<DailyReviewStat[]>
  */
 export async function getReviewStats(days: number = 30): Promise<DailyReviewStat[]> {
+  const supabase = createClient();
+
   // 1. 取得當前使用者
   const {
     data: { user },
