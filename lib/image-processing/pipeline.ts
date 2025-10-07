@@ -24,26 +24,43 @@ export async function processImage(
   let currentFile: File | Blob = file;
 
   try {
-    // Step 1: 智能裁切
+    let progressStep = 0;
+    const totalSteps = [
+      options.enableCrop,
+      options.enableDeskew,
+      options.enableNormalize,
+      options.enableEnhance,
+    ].filter(Boolean).length;
+
+    // Step 1: 智能裁切（可選）
     if (options.enableCrop) {
-      onProgress?.('cropping', 20);
+      progressStep++;
+      onProgress?.('cropping', (progressStep / totalSteps) * 100);
       const cropped = await smartCrop(currentFile as File);
       currentFile = new File([cropped], 'cropped.png', { type: 'image/png' });
     }
 
-    // Step 2: 透視校正
+    // Step 2: 透視校正（推薦）
     if (options.enableDeskew) {
-      onProgress?.('deskewing', 40);
+      progressStep++;
+      onProgress?.('deskewing', (progressStep / totalSteps) * 100);
       const deskewed = await deskewImage(currentFile as File);
       currentFile = new File([deskewed], 'deskewed.png', { type: 'image/png' });
     }
 
-    // Step 3: 白底黑字標準化 + 對比度增強
-    if (options.enableNormalize || options.enableEnhance) {
-      onProgress?.('normalizing', 60);
+    // Step 3: 白底黑字標準化（優化後）
+    if (options.enableNormalize) {
+      progressStep++;
+      onProgress?.('normalizing', (progressStep / totalSteps) * 100);
       const normalized = await normalizeImage(currentFile as File);
       currentFile = normalized;
-      onProgress?.('enhancing', 80);
+    }
+
+    // Step 4: 對比度增強（已關閉，避免雜訊）
+    if (options.enableEnhance) {
+      progressStep++;
+      onProgress?.('enhancing', (progressStep / totalSteps) * 100);
+      // 已關閉此步驟
     }
 
     // 完成

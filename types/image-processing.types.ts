@@ -95,13 +95,13 @@ export interface ProcessingOptions {
 }
 
 /**
- * 預設處理選項
+ * 預設處理選項（優化後 - 只保留基本處理）
  */
 export const DEFAULT_PROCESSING_OPTIONS: ProcessingOptions = {
-  enableCrop: true,
-  enableDeskew: true,
-  enableNormalize: true,
-  enableEnhance: true,
+  enableCrop: false,        // ❌ 關閉裁切
+  enableDeskew: false,      // ❌ 關閉透視校正（造成更歪）
+  enableNormalize: true,    // ✅ 只做溫和的去噪和銳化
+  enableEnhance: false,     // ❌ 關閉對比度增強
   enableInkRemoval: false,  // Phase 2D-3 啟用
   enableOCR: false,         // Phase 2D-3 啟用
 };

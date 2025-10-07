@@ -10,10 +10,7 @@ import type { ProcessingStep } from '@/types/image-processing.types';
 import { Progress } from '@/components/ui/progress';
 
 const STEPS = [
-  { id: 'cropping', label: '智能裁切', icon: Crop },
-  { id: 'deskewing', label: '透視校正', icon: RotateCw },
-  { id: 'normalizing', label: '白底黑字', icon: Sun },
-  { id: 'enhancing', label: '對比度增強', icon: Contrast },
+  { id: 'normalizing', label: '圖片優化', icon: Sun },
 ];
 
 interface ProcessingStepsProps {
@@ -28,7 +25,7 @@ export default function ProcessingSteps({ currentStep, progress }: ProcessingSte
     <div className="space-y-4">
       <Progress value={progress} className="h-2" />
       
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-1 gap-2">
         {STEPS.map((step, index) => {
           const Icon = step.icon;
           const isCompleted = currentIndex > index;

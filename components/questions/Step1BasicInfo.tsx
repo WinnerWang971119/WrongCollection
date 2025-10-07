@@ -36,27 +36,29 @@ export function Step1BasicInfo({
 }: Step1BasicInfoProps) {
   const [showProcessor, setShowProcessor] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
 
-  const handleSmartProcess = () => {
-    // 取得使用者選擇的第一張圖
-    const firstImage = questionImages[0];
-    if (firstImage?.file) {
-      setSelectedFile(firstImage.file);
+  const handleSmartProcess = (index: number) => {
+    // ✅ 支援處理第一張或第二張圖
+    const image = questionImages[index];
+    if (image?.file) {
+      setSelectedFile(image.file);
+      setSelectedImageIndex(index);
       setShowProcessor(true);
     }
   };
 
   const handleProcessed = (processedBlob: Blob) => {
-    // 將處理後的圖片替換原圖
+    // ✅ 將處理後的圖片替換指定位置的圖片
     const newFile = new File([processedBlob], 'processed_' + selectedFile?.name || 'image.png', {
       type: 'image/png',
     });
     
-    // 更新圖片列表（替換第一張）
+    // 更新圖片列表
     const newImages = [...questionImages];
-    if (newImages[0]) {
-      newImages[0] = {
-        ...newImages[0],
+    if (newImages[selectedImageIndex]) {
+      newImages[selectedImageIndex] = {
+        ...newImages[selectedImageIndex],
         file: newFile,
         preview: URL.createObjectURL(processedBlob),
       };
@@ -96,21 +98,8 @@ export function Step1BasicInfo({
           <FormLabel className="flex items-center gap-1">
             📷 題目照片 <span className="text-gray-400">(選填，最多2張)</span>
           </FormLabel>
-          
-          {/* 智能處理按鈕 */}
-          {questionImages.length > 0 && questionImages[0]?.uploaded && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleSmartProcess}
-              className="flex items-center gap-2"
-            >
-              <Wand2 className="h-4 w-4" />
-              智能處理
-            </Button>
-          )}
         </div>
+        
         <MultiImageUpload
           images={questionImages}
           onImagesChange={onQuestionImagesChange}
@@ -119,6 +108,28 @@ export function Step1BasicInfo({
           label="點擊或拖曳上傳題目圖片"
           helperText="支援 JPG, PNG, WEBP, HEIC 格式，圖片會自動壓縮並上傳"
         />
+        
+        {/* ✅ 為每張已上傳的圖片顯示智能處理按鈕 */}
+        <div className="space-y-2">
+          {questionImages.map((img, index) => (
+            img.uploaded && (
+              <div key={index} className="flex items-center gap-2 text-sm">
+                <span className="text-green-600">✓ 圖片 {index + 1} 已上傳</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSmartProcess(index)}
+                  className="flex items-center gap-2"
+                >
+                  <Wand2 className="h-4 w-4" />
+                  智能處理圖片 {index + 1}
+                </Button>
+              </div>
+            )
+          ))}
+        </div>
+        
         {/* 顯示已上傳圖片數量 */}
         {questionImages.filter(img => img.uploaded).length > 0 && (
           <p className="text-xs text-green-600">

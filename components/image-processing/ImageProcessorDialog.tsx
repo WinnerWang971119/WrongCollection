@@ -5,11 +5,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, Copy, X } from 'lucide-react';
+import { Download, Copy, X, Scissors } from 'lucide-react';
 import ProcessingSteps from './ProcessingSteps';
+import ImageCropper from './ImageCropper';
 import { processImage } from '@/lib/image-processing/pipeline';
 import { DEFAULT_PROCESSING_OPTIONS } from '@/types/image-processing.types';
 import type { ProcessingStep, ProcessingResult } from '@/types/image-processing.types';
@@ -32,16 +33,35 @@ export default function ImageProcessorDialog({
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<ProcessingResult | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [showCropper, setShowCropper] = useState(false);
+  const [croppedBlob, setCroppedBlob] = useState<Blob | null>(null);
+
+  // 每次開啟對話框時重置狀態
+  useEffect(() => {
+    if (open) {
+      setCurrentStep('idle');
+      setProgress(0);
+      setResult(null);
+      setProcessing(false);
+      setShowCropper(false);
+      setCroppedBlob(null);
+    }
+  }, [open, imageFile]);
 
   const handleProcess = async () => {
     if (!imageFile) return;
 
     setProcessing(true);
-    setCurrentStep('cropping');
+    setCurrentStep('normalizing');
     setProgress(0);
 
+    // 使用調整後的圖片（如果有），否則使用原圖
+    const fileToProcess = croppedBlob 
+      ? new File([croppedBlob], imageFile.name, { type: 'image/png' })
+      : imageFile;
+
     const result = await processImage(
-      imageFile,
+      fileToProcess,
       DEFAULT_PROCESSING_OPTIONS,
       (step, prog) => {
         setCurrentStep(step);
@@ -79,18 +99,50 @@ export default function ImageProcessorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             🎨 智能圖片處理
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* 步驟指示器 */}
-          {processing && (
-            <ProcessingSteps currentStep={currentStep} progress={progress} />
-          )}
+        {/* 調整模式（裁切 + 旋轉） */}
+        {showCropper && imageFile && (
+          <ImageCropper
+            imageUrl={URL.createObjectURL(imageFile)}
+            onCropComplete={(blob) => {
+              setCroppedBlob(blob);
+              setShowCropper(false);
+              toast.success('✅ 調整完成！請點擊「開始處理」');
+            }}
+            onCancel={() => setShowCropper(false)}
+          />
+        )}
+
+        {/* 正常模式 */}
+        {!showCropper && (
+          <div className="space-y-6">
+            {/* 原圖預覽 */}
+            {imageFile && !result && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">原始圖片</p>
+                <div className="border rounded-lg overflow-hidden bg-gray-50">
+                  <img
+                    src={croppedBlob ? URL.createObjectURL(croppedBlob) : URL.createObjectURL(imageFile)}
+                    alt="原始圖片"
+                    className="w-full h-auto max-h-[400px] object-contain"
+                  />
+                </div>
+                {croppedBlob && (
+                  <p className="text-sm text-green-600">✓ 已調整</p>
+                )}
+              </div>
+            )}
+
+            {/* 步驟指示器 */}
+            {processing && (
+              <ProcessingSteps currentStep={currentStep} progress={progress} />
+            )}
 
           {/* 處理結果預覽 */}
           {result?.success && result.processedImageUrl && (
@@ -129,11 +181,26 @@ export default function ImageProcessorDialog({
 
           {/* 開始處理按鈕 */}
           {!processing && !result && (
-            <Button onClick={handleProcess} className="w-full" size="lg">
-              🚀 開始智能處理
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowCropper(true)}
+                variant="outline"
+                className="flex-1 flex items-center justify-center gap-2"
+              >
+                <Scissors className="h-4 w-4" />
+                {croppedBlob ? '重新調整' : '手動調整'}
+              </Button>
+              <Button
+                onClick={handleProcess}
+                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700"
+                size="lg"
+              >
+                🚀 {croppedBlob ? '處理調整後圖片' : '開始智能處理'}
+              </Button>
+            </div>
           )}
-        </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
