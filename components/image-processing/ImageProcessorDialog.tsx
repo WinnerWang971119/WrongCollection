@@ -8,12 +8,14 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, Copy, X, Scissors } from 'lucide-react';
+import { Download, Copy, X, Scissors, FileText, Loader2 } from 'lucide-react';
 import ProcessingSteps from './ProcessingSteps';
 import ImageCropper from './ImageCropper';
 import { processImage } from '@/lib/image-processing/pipeline';
 import { DEFAULT_PROCESSING_OPTIONS } from '@/types/image-processing.types';
 import type { ProcessingStep, ProcessingResult } from '@/types/image-processing.types';
+import { extractTextFromImage, evaluateOCRQuality, formatOCRText } from '@/lib/api/ocr.api';
+import type { OCRResult } from '@/lib/api/ocr.api';
 import { toast } from 'sonner';
 
 interface ImageProcessorDialogProps {
@@ -35,6 +37,11 @@ export default function ImageProcessorDialog({
   const [processing, setProcessing] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
   const [croppedBlob, setCroppedBlob] = useState<Blob | null>(null);
+  
+  // OCR 相關狀態
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
+  const [showOcrResult, setShowOcrResult] = useState(false);
 
   // 每次開啟對話框時重置狀態
   useEffect(() => {
@@ -45,6 +52,9 @@ export default function ImageProcessorDialog({
       setProcessing(false);
       setShowCropper(false);
       setCroppedBlob(null);
+      setOcrLoading(false);
+      setOcrResult(null);
+      setShowOcrResult(false);
     }
   }, [open, imageFile]);
 
@@ -94,6 +104,57 @@ export default function ImageProcessorDialog({
       a.download = 'processed_' + imageFile?.name || 'image.png';
       a.click();
       toast.success('⬇️ 下載成功');
+    }
+  };
+
+  // 處理 OCR 辨識
+  const handleOCR = async () => {
+    if (!imageFile) return;
+
+    setOcrLoading(true);
+    setOcrResult(null);
+    setShowOcrResult(true);
+
+    try {
+      console.log('🔍 開始 OCR 辨識...');
+      
+      // 使用調整後的圖片（如果有），否則使用原圖
+      const fileToOCR = croppedBlob 
+        ? new File([croppedBlob], imageFile.name, { type: 'image/png' })
+        : imageFile;
+
+      const result = await extractTextFromImage(fileToOCR);
+      
+      if (result.success) {
+        setOcrResult(result);
+        const quality = evaluateOCRQuality(result);
+        toast.success(`✅ 辨識完成！${quality.message}`);
+      } else {
+        toast.error('❌ 辨識失敗：' + result.error);
+      }
+    } catch (error) {
+      console.error('❌ OCR 錯誤:', error);
+      toast.error('❌ 辨識失敗：' + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setOcrLoading(false);
+    }
+  };
+
+  // 複製 OCR 文字到剪貼簿
+  const handleCopyOCRText = async () => {
+    if (ocrResult?.text) {
+      const formatted = formatOCRText(ocrResult.text);
+      
+      try {
+        await navigator.clipboard.writeText(formatted);
+        toast.success('✅ 已複製到剪貼簿', {
+          description: `已複製 ${formatted.length} 個字元`,
+          duration: 2000,
+        });
+      } catch (error) {
+        console.error('複製失敗:', error);
+        toast.error('❌ 複製失敗');
+      }
     }
   };
 
@@ -181,22 +242,113 @@ export default function ImageProcessorDialog({
 
           {/* 開始處理按鈕 */}
           {!processing && !result && (
-            <div className="flex gap-2">
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowCropper(true)}
+                  variant="outline"
+                  className="flex-1 flex items-center justify-center gap-2"
+                >
+                  <Scissors className="h-4 w-4" />
+                  {croppedBlob ? '重新調整' : '手動調整'}
+                </Button>
+                <Button
+                  onClick={handleProcess}
+                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700"
+                  size="lg"
+                  disabled={ocrLoading}
+                >
+                  🚀 {croppedBlob ? '處理調整後圖片' : '開始智能處理'}
+                </Button>
+              </div>
+
+              {/* OCR 辨識按鈕 */}
               <Button
-                onClick={() => setShowCropper(true)}
+                onClick={handleOCR}
                 variant="outline"
-                className="flex-1 flex items-center justify-center gap-2"
+                className="w-full flex items-center justify-center gap-2 border-green-200 hover:bg-green-50"
+                disabled={ocrLoading || processing}
               >
-                <Scissors className="h-4 w-4" />
-                {croppedBlob ? '重新調整' : '手動調整'}
+                {ocrLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    辨識中...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4" />
+                    🔍 辨識文字 (OCR)
+                  </>
+                )}
               </Button>
-              <Button
-                onClick={handleProcess}
-                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700"
-                size="lg"
-              >
-                🚀 {croppedBlob ? '處理調整後圖片' : '開始智能處理'}
-              </Button>
+            </div>
+          )}
+
+          {/* OCR 結果顯示 */}
+          {showOcrResult && ocrResult && (
+            <div className="space-y-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-green-800 flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  辨識結果
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowOcrResult(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* 統計資訊 */}
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <div className="bg-white p-2 rounded">
+                  <p className="text-gray-600">信心度</p>
+                  <p className="font-semibold text-green-600">
+                    {(ocrResult.confidence * 100).toFixed(1)}%
+                  </p>
+                </div>
+                <div className="bg-white p-2 rounded">
+                  <p className="text-gray-600">字數</p>
+                  <p className="font-semibold">{ocrResult.characterCount} 字</p>
+                </div>
+                <div className="bg-white p-2 rounded">
+                  <p className="text-gray-600">語言</p>
+                  <p className="font-semibold">
+                    {ocrResult.language === 'zh' && '中文'}
+                    {ocrResult.language === 'en' && '英文'}
+                    {ocrResult.language === 'zh-en' && '中英混合'}
+                    {ocrResult.language === 'unknown' && '未知'}
+                  </p>
+                </div>
+              </div>
+
+              {/* 辨識文字 */}
+              <div className="bg-white p-3 rounded border max-h-[200px] overflow-y-auto">
+                <p className="whitespace-pre-wrap text-sm font-mono">
+                  {formatOCRText(ocrResult.text) || '(未辨識到文字)'}
+                </p>
+              </div>
+
+              {/* 操作按鈕 */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleCopyOCRText}
+                  className="flex-1 bg-green-600 hover:bg-green-700 active:scale-95 transition-transform"
+                  disabled={!ocrResult.text}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  複製文字
+                </Button>
+                <Button
+                  onClick={() => setShowOcrResult(false)}
+                  variant="outline"
+                  className="active:scale-95 transition-transform"
+                >
+                  關閉
+                </Button>
+              </div>
             </div>
           )}
           </div>

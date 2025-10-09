@@ -35,3 +35,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Google Cloud 金鑰
+config/
+*.json
+!package.json
+!tsconfig.json
+.env.local

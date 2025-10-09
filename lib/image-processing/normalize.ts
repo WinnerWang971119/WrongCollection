@@ -15,37 +15,44 @@ export async function normalizeImage(imageFile: File): Promise<Blob> {
     const gray = new cv.Mat();
     cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
     
-    // === 白底黑字轉換流程（優化版 - 保持文字完整性） ===
+    // === 新方法：對比度增強 + 反色（不使用二值化，保留灰階細節） ===
     
-    // Step 1: 溫和去噪（保留文字細節）
+    // Step 1: 非常輕微去噪（只去除極小雜點）
     const denoised = new cv.Mat();
-    cv.GaussianBlur(gray, denoised, new cv.Size(3, 3), 0);
+    cv.medianBlur(gray, denoised, 3);  // 使用中值濾波，保留邊緣
     
-    // Step 2: 自適應二值化（白底黑字）
-    const binary = new cv.Mat();
-    cv.adaptiveThreshold(
-      denoised,
-      binary,
-      255,
-      cv.ADAPTIVE_THRESH_GAUSSIAN_C,
-      cv.THRESH_BINARY,
-      19,  // 增大區塊（15 → 19）減少邊緣侵蝕
-      6    // 降低常數（8 → 6）保留更多細節
-    );
+    // Step 2: 直方圖均衡化（增強對比度）
+    const equalized = new cv.Mat();
+    cv.equalizeHist(denoised, equalized);
     
-    // Step 3: 非常輕微的形態學處理（只去除極小雜點）
-    const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(1, 1));
-    const cleaned = new cv.Mat();
-    cv.morphologyEx(binary, cleaned, cv.MORPH_OPEN, kernel);  // OPEN 不會侵蝕邊緣
+    // Step 3: 自動判斷是否需要反色（黑底變白底）
+    // 計算平均亮度，如果背景較暗則反色
+    const mean = cv.mean(equalized);
+    const avgBrightness = mean[0];
     
-    // Step 4: 輕微銳化（讓文字更清晰但不過度）
+    let processed = new cv.Mat();
+    if (avgBrightness < 128) {
+      // 背景較暗，需要反色（黑底→白底）
+      cv.bitwise_not(equalized, processed);
+      console.log('🔄 背景較暗，已反色');
+    } else {
+      // 背景已經較亮，不需反色
+      equalized.copyTo(processed);
+      console.log('✅ 背景較亮，維持原色');
+    }
+    
+    // Step 4: 調整對比度和亮度（讓文字更清晰）
+    const adjusted = new cv.Mat();
+    processed.convertTo(adjusted, -1, 1.5, 20);  // alpha=1.5 (對比), beta=20 (亮度)
+    
+    // Step 5: 銳化（恢復清晰邊緣）
     const sharpened = new cv.Mat();
     const sharpenKernel = cv.matFromArray(3, 3, cv.CV_32F, [
-      0, -0.3, 0,
-      -0.3, 2.2, -0.3,
-      0, -0.3, 0
+      -1, -1, -1,
+      -1,  9, -1,
+      -1, -1, -1
     ]);
-    cv.filter2D(cleaned, sharpened, -1, sharpenKernel);
+    cv.filter2D(adjusted, sharpened, -1, sharpenKernel);
     
     // 轉回 RGBA 以便顯示
     const rgba = new cv.Mat();
@@ -60,9 +67,9 @@ export async function normalizeImage(imageFile: File): Promise<Blob> {
     src.delete();
     gray.delete();
     denoised.delete();
-    binary.delete();
-    kernel.delete();
-    cleaned.delete();
+    equalized.delete();
+    processed.delete();
+    adjusted.delete();
     sharpened.delete();
     sharpenKernel.delete();
     rgba.delete();
