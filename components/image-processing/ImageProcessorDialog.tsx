@@ -16,6 +16,9 @@ import { DEFAULT_PROCESSING_OPTIONS } from '@/types/image-processing.types';
 import type { ProcessingStep, ProcessingResult } from '@/types/image-processing.types';
 import { extractTextFromImage, evaluateOCRQuality, formatOCRText } from '@/lib/api/ocr.api';
 import type { OCRResult } from '@/lib/api/ocr.api';
+import { detectInk, validateInkDetection } from '@/lib/image-processing/detect-ink';
+import type { InkDetectionResult } from '@/lib/image-processing/detect-ink';
+import { removeInkWithAI, fileToDataUrl, fetchImageAsBlob, blobToDataUrl } from '@/lib/api/ai.api';
 import { toast } from 'sonner';
 
 interface ImageProcessorDialogProps {
@@ -43,6 +46,12 @@ export default function ImageProcessorDialog({
   const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
   const [showOcrResult, setShowOcrResult] = useState(false);
 
+  // 移除筆跡相關狀態
+  const [inkRemoving, setInkRemoving] = useState(false);
+  const [inkDetectionResult, setInkDetectionResult] = useState<InkDetectionResult | null>(null);
+  const [inkRemovedImageUrl, setInkRemovedImageUrl] = useState<string | null>(null);
+  const [showInkResult, setShowInkResult] = useState(false);
+
   // 每次開啟對話框時重置狀態
   useEffect(() => {
     if (open) {
@@ -55,6 +64,10 @@ export default function ImageProcessorDialog({
       setOcrLoading(false);
       setOcrResult(null);
       setShowOcrResult(false);
+      setInkRemoving(false);
+      setInkDetectionResult(null);
+      setInkRemovedImageUrl(null);
+      setShowInkResult(false);
     }
   }, [open, imageFile]);
 
@@ -155,6 +168,90 @@ export default function ImageProcessorDialog({
         console.error('複製失敗:', error);
         toast.error('❌ 複製失敗');
       }
+    }
+  };
+
+  // 移除筆跡
+  const handleRemoveInk = async () => {
+    if (!imageFile) return;
+
+    setInkRemoving(true);
+    setInkDetectionResult(null);
+    setInkRemovedImageUrl(null);
+    setShowInkResult(true);
+
+    try {
+      console.log('🧹 開始移除筆跡...');
+      
+      // Step 1: 使用調整後的圖片（如果有），否則使用原圖
+      const fileToProcess = croppedBlob 
+        ? new File([croppedBlob], imageFile.name, { type: 'image/png' })
+        : imageFile;
+
+      // Step 2: 自動檢測筆跡
+      toast.info('🔍 正在檢測筆跡...');
+      const detection = await detectInk(fileToProcess, {
+        threshold: 120,
+        dilateIterations: 2,
+        minInkArea: 50,
+      });
+
+      setInkDetectionResult(detection);
+      console.log('✅ 筆跡檢測完成:', {
+        regions: detection.inkRegionCount,
+        area: detection.totalInkArea,
+        percentage: detection.inkPercentage.toFixed(2) + '%',
+      });
+
+      // Step 3: 驗證檢測結果
+      const validation = validateInkDetection(detection);
+      if (!validation.isValid) {
+        toast.error('❌ ' + validation.warning);
+        setInkRemoving(false);
+        return;
+      }
+
+      // Step 4: 轉換為 Data URL
+      toast.info('📤 正在呼叫 AI 模型...');
+      const imageDataUrl = await fileToDataUrl(fileToProcess);
+      const maskDataUrl = detection.maskDataUrl;
+
+      // Step 5: 呼叫 Replicate API
+      const resultUrl = await removeInkWithAI(imageDataUrl, maskDataUrl);
+      
+      // Step 6: 下載結果並轉換為 Blob URL
+      const resultBlob = await fetchImageAsBlob(resultUrl);
+      const resultBlobUrl = URL.createObjectURL(resultBlob);
+      
+      setInkRemovedImageUrl(resultBlobUrl);
+      toast.success('✅ 筆跡移除成功！', {
+        description: `檢測到 ${detection.inkRegionCount} 處筆跡`,
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('❌ 移除筆跡錯誤:', error);
+      toast.error('❌ 移除筆跡失敗：' + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setInkRemoving(false);
+    }
+  };
+
+  // 使用移除筆跡後的圖片
+  const handleUseInkRemovedImage = async () => {
+    if (!inkRemovedImageUrl) return;
+
+    try {
+      const blob = await fetch(inkRemovedImageUrl).then(r => r.blob());
+      const file = new File([blob], 'ink-removed.png', { type: 'image/png' });
+      
+      // 更新為調整後的圖片
+      setCroppedBlob(blob);
+      
+      toast.success('✅ 已套用移除筆跡後的圖片');
+      setShowInkResult(false);
+    } catch (error) {
+      console.error('❌ 套用失敗:', error);
+      toast.error('❌ 套用失敗');
     }
   };
 
@@ -281,6 +378,25 @@ export default function ImageProcessorDialog({
                   </>
                 )}
               </Button>
+
+              {/* 移除筆跡按鈕 */}
+              <Button
+                onClick={handleRemoveInk}
+                variant="outline"
+                className="w-full flex items-center justify-center gap-2 border-purple-200 hover:bg-purple-50"
+                disabled={inkRemoving || processing || ocrLoading}
+              >
+                {inkRemoving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    AI 處理中... (5-15秒)
+                  </>
+                ) : (
+                  <>
+                    🧹 移除筆跡 (AI)
+                  </>
+                )}
+              </Button>
             </div>
           )}
 
@@ -349,6 +465,102 @@ export default function ImageProcessorDialog({
                   關閉
                 </Button>
               </div>
+            </div>
+          )}
+
+          {/* 移除筆跡結果顯示 */}
+          {showInkResult && (
+            <div className="space-y-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-purple-800 flex items-center gap-2">
+                  🧹 移除筆跡結果
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowInkResult(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* 檢測統計 */}
+              {inkDetectionResult && (
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div className="bg-white p-2 rounded">
+                    <p className="text-gray-600">筆跡區域</p>
+                    <p className="font-semibold text-purple-600">
+                      {inkDetectionResult.inkRegionCount} 處
+                    </p>
+                  </div>
+                  <div className="bg-white p-2 rounded">
+                    <p className="text-gray-600">覆蓋面積</p>
+                    <p className="font-semibold">
+                      {inkDetectionResult.inkPercentage.toFixed(1)}%
+                    </p>
+                  </div>
+                  <div className="bg-white p-2 rounded">
+                    <p className="text-gray-600">狀態</p>
+                    <p className="font-semibold text-green-600">
+                      {inkRemovedImageUrl ? '已完成' : '處理中...'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 前後對比 */}
+              {inkRemovedImageUrl && imageFile && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">處理前</p>
+                    <div className="border rounded overflow-hidden bg-white">
+                      <img
+                        src={URL.createObjectURL(croppedBlob || imageFile)}
+                        alt="處理前"
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">處理後</p>
+                    <div className="border rounded overflow-hidden bg-white">
+                      <img
+                        src={inkRemovedImageUrl}
+                        alt="處理後"
+                        className="w-full h-auto"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 操作按鈕 */}
+              {inkRemovedImageUrl && (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleUseInkRemovedImage}
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 active:scale-95 transition-transform"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    使用此圖片
+                  </Button>
+                  <Button
+                    onClick={() => setShowInkResult(false)}
+                    variant="outline"
+                    className="active:scale-95 transition-transform"
+                  >
+                    關閉
+                  </Button>
+                </div>
+              )}
+
+              {/* 處理中提示 */}
+              {inkRemoving && (
+                <div className="flex items-center justify-center gap-2 py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                  <p className="text-sm text-gray-600">AI 正在處理，預計 5-15 秒...</p>
+                </div>
+              )}
             </div>
           )}
           </div>
